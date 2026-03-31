@@ -1,116 +1,199 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Game Lịch Sử Pixel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lịch Sử Việt Nam Pixel</title>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
 
 <style>
 body{
-background:#111827;
-color:white;
-font-family:Arial;
+margin:0;
+font-family:sans-serif;
+background:#87ceeb;
 text-align:center;
-padding-top:100px;
+}
+
+#menu{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:white;
+padding:20px;
+border-radius:12px;
 }
 
 button{
-padding:14px 24px;
-font-size:18px;
-margin:10px;
-border:none;
-border-radius:8px;
-background:#ef4444;
-color:white;
-cursor:pointer;
+padding:10px 20px;
+margin:5px;
+font-size:16px;
 }
-
-button:hover{
-background:#dc2626;
-}
-
-#game{
-display:none;
-}
-
 </style>
 </head>
 
 <body>
 
-<h1>Pixel History Challenge</h1>
+<div id="menu">
+<h2>Lịch Sử Việt Nam Pixel</h2>
 
-<button id="start">Bắt đầu chơi</button>
+<input id="name" placeholder="Nhập tên"><br><br>
 
-<div id="game">
-<h2 id="question"></h2>
-<div id="answers"></div>
+Chọn nhân vật<br>
+<button onclick="selectHero('hero')">Anh hùng</button>
+<button onclick="selectHero('student')">Áo dài</button><br><br>
+
+<button onclick="startGame()">Bắt đầu</button>
 </div>
 
 <script>
 
-const startBtn = document.getElementById("start");
-const game = document.getElementById("game");
-const questionText = document.getElementById("question");
-const answersBox = document.getElementById("answers");
+let playerType="hero";
+let score=0;
+let questionIndex=0;
 
-const questions = [
+const questions=[
 {
-question:"Ai đọc Tuyên ngôn Độc lập năm 1945?",
-answers:["Hồ Chí Minh","Võ Nguyên Giáp","Ngô Quyền","Quang Trung"],
+q:"Ai lãnh đạo trận Bạch Đằng?",
+a:["Ngô Quyền","Lê Lợi","Gia Long","Quang Trung"],
 correct:0
 },
 {
-question:"Chiến thắng Điện Biên Phủ diễn ra năm nào?",
-answers:["1950","1954","1965","1975"],
+q:"Thăng Long đổi tên Hà Nội năm nào?",
+a:["1802","1831","1900","1945"],
 correct:1
 },
 {
-question:"Trận Bạch Đằng nổi tiếng do ai lãnh đạo?",
-answers:["Ngô Quyền","Lê Lợi","Trần Nhân Tông","Gia Long"],
+q:"Chiến thắng Điện Biên Phủ năm nào?",
+a:["1950","1954","1968","1975"],
+correct:1
+},
+{
+q:"Ai đọc Tuyên ngôn Độc lập?",
+a:["Hồ Chí Minh","Võ Nguyên Giáp","Phạm Văn Đồng","Trường Chinh"],
 correct:0
+},
+{
+q:"Việt Nam thống nhất năm nào?",
+a:["1973","1975","1980","1990"],
+correct:1
 }
 ];
 
-let current = 0;
-
-startBtn.onclick = function(){
-startBtn.style.display = "none";
-game.style.display = "block";
-loadQuestion();
-};
-
-function loadQuestion(){
-let q = questions[current];
-questionText.innerText = q.question;
-
-answersBox.innerHTML = "";
-
-q.answers.forEach((ans,i)=>{
-let btn = document.createElement("button");
-btn.innerText = ans;
-btn.onclick = function(){
-checkAnswer(i);
-};
-answersBox.appendChild(btn);
-});
+function selectHero(type){
+playerType=type;
 }
 
-function checkAnswer(i){
-if(i === questions[current].correct){
+function startGame(){
+document.getElementById("menu").style.display="none";
+initGame();
+}
+
+function askQuestion(scene){
+let q=questions[questionIndex];
+
+let answer=prompt(q.q+"\n\n"+
+"1."+q.a[0]+"\n"+
+"2."+q.a[1]+"\n"+
+"3."+q.a[2]+"\n"+
+"4."+q.a[3]);
+
+if(answer-1==q.correct){
+score++;
 alert("Đúng!");
 }else{
 alert("Sai!");
 }
 
-current++;
+questionIndex++;
 
-if(current < questions.length){
-loadQuestion();
-}else{
-questionText.innerText = "Bạn đã hoàn thành game!";
-answersBox.innerHTML = "";
+if(questionIndex>=questions.length){
+alert("Hoàn thành!\nĐiểm: "+score+"/5");
+location.reload();
 }
+}
+
+function initGame(){
+
+const config={
+type:Phaser.AUTO,
+width:window.innerWidth,
+height:window.innerHeight,
+physics:{
+default:"arcade",
+arcade:{gravity:{y:500}}
+},
+scene:{
+preload,
+create,
+update
+}
+};
+
+let player;
+let cursors;
+let gates;
+
+new Phaser.Game(config);
+
+function preload(){
+this.load.image("ground","https://labs.phaser.io/assets/sprites/platform.png");
+this.load.image("gate","https://labs.phaser.io/assets/sprites/block.png");
+
+if(playerType==="hero"){
+this.load.image("player","https://labs.phaser.io/assets/sprites/phaser-dude.png");
+}else{
+this.load.image("player","https://labs.phaser.io/assets/sprites/mushroom2.png");
+}
+}
+
+function create(){
+
+this.add.text(20,20,"Điểm: "+score,{fontSize:"20px",fill:"#000"});
+
+let platforms=this.physics.add.staticGroup();
+
+for(let i=0;i<20;i++){
+platforms.create(i*200,600,"ground").setScale(0.5).refreshBody();
+}
+
+player=this.physics.add.sprite(100,450,"player");
+player.setCollideWorldBounds(true);
+
+this.physics.add.collider(player,platforms);
+
+cursors=this.input.keyboard.createCursorKeys();
+
+gates=this.physics.add.group();
+
+for(let i=1;i<=5;i++){
+let gate=gates.create(i*600,500,"gate");
+gate.setImmovable(true);
+}
+
+this.physics.add.overlap(player,gates,(player,gate)=>{
+gate.destroy();
+askQuestion(this);
+});
+}
+
+function update(){
+
+if(cursors.left.isDown){
+player.setVelocityX(-200);
+}else if(cursors.right.isDown){
+player.setVelocityX(200);
+}else{
+player.setVelocityX(0);
+}
+
+if(cursors.up.isDown && player.body.touching.down){
+player.setVelocityY(-400);
+}
+
+}
+
 }
 
 </script>
