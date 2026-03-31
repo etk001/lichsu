@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Game Lịch Sử Pixel</title>
+<title>Game Lịch Sử Việt Nam Pixel</title>
 
 <style>
 body{
 margin:0;
 overflow:hidden;
 background:#87CEEB;
+font-family:sans-serif;
 }
 
 canvas{
@@ -19,7 +20,7 @@ image-rendering: pixelated;
 
 .controls{
 position:fixed;
-bottom:20px;
+bottom:15px;
 width:100%;
 display:flex;
 justify-content:center;
@@ -28,16 +29,28 @@ gap:20px;
 
 button{
 font-size:24px;
-padding:18px;
+padding:16px;
 border:none;
-border-radius:12px;
-background:black;
-color:white;
+border-radius:10px;
+background:#000;
+color:#fff;
+}
+
+.score{
+position:fixed;
+top:10px;
+left:10px;
+background:white;
+padding:6px 10px;
+border-radius:8px;
+font-size:18px;
 }
 </style>
 </head>
 
 <body>
+
+<div class="score">Điểm: <span id="score">0</span></div>
 
 <canvas id="game"></canvas>
 
@@ -47,8 +60,8 @@ color:white;
 <button id="right">▶</button>
 </div>
 
-<audio id="music" autoplay loop>
-<source src="snaptt.me-35221248.m4a" type="audio/mp4">
+<audio id="music" loop>
+<source src="amthanh.mp3" type="audio/mpeg">
 </audio>
 
 <script>
@@ -59,31 +72,76 @@ const ctx = canvas.getContext("2d")
 canvas.width = window.innerWidth
 canvas.height = window.innerHeight
 
-let leftPressed=false
-let rightPressed=false
+const music = document.getElementById("music")
+
+document.body.addEventListener("touchstart", () => {
+music.play()
+},{once:true})
+
+let left=false
+let right=false
+
+let score=0
 
 let player={
 x:100,
 y:300,
-w:40,
-h:40,
+w:42,
+h:42,
 vy:0,
-speed:5,
-jumping:false
+jump:false,
+speed:5
 }
 
-const gravity=0.6
+const gravity=0.7
 
-function drawGround(){
+const questions=[
+"Ngô Quyền đánh bại quân nào trên sông Bạch Đằng?",
+"Chiến thắng Điện Biên Phủ năm bao nhiêu?",
+"Ai đọc Tuyên ngôn Độc lập 1945?",
+"Nhà Trần đánh bại quân nào?",
+"Thủ đô Việt Nam là gì?"
+]
+
+let gates=[
+{ x:700, asked:false },
+{ x:1300, asked:false },
+{ x:1900, asked:false },
+{ x:2500, asked:false },
+{ x:3100, asked:false }
+]
+
+function drawMap(){
 for(let i=0;i<4000;i+=40){
-ctx.fillStyle="#4CAF50"
+ctx.fillStyle="#3aa655"
 ctx.fillRect(i,350,40,40)
 }
 }
 
 function drawPlayer(){
-ctx.fillStyle="#ffcc99"
+ctx.fillStyle="#ffd7b5"
 ctx.fillRect(player.x,player.y,player.w,player.h)
+
+ctx.fillStyle="#c0392b"
+ctx.fillRect(player.x+10,player.y+10,20,20)
+}
+
+function drawGates(){
+ctx.fillStyle="#8e5a2b"
+gates.forEach(g=>{
+if(!g.asked){
+ctx.fillRect(g.x,280,40,70)
+}
+})
+}
+
+function askQuestion(i){
+let a=prompt(questions[i])
+if(a){
+score+=5
+alert("Đúng hoặc đã trả lời! +5 điểm")
+}
+document.getElementById("score").innerText=score
 }
 
 function game(){
@@ -93,45 +151,49 @@ ctx.clearRect(0,0,canvas.width,canvas.height)
 ctx.save()
 ctx.translate(-player.x+150,0)
 
-drawGround()
+drawMap()
+drawGates()
 drawPlayer()
 
 ctx.restore()
 
-if(leftPressed) player.x -= player.speed
-if(rightPressed) player.x += player.speed
+if(left) player.x -= player.speed
+if(right) player.x += player.speed
 
 player.y += player.vy
 player.vy += gravity
 
 if(player.y>300){
 player.y=300
-player.jumping=false
+player.jump=false
 }
+
+gates.forEach((g,i)=>{
+if(!g.asked && player.x>g.x-30){
+g.asked=true
+askQuestion(i)
+}
+})
 
 requestAnimationFrame(game)
 }
 
-document.getElementById("left").ontouchstart=()=> leftPressed=true
-document.getElementById("left").ontouchend=()=> leftPressed=false
+document.getElementById("left").ontouchstart=()=> left=true
+document.getElementById("left").ontouchend=()=> left=false
 
-document.getElementById("right").ontouchstart=()=> rightPressed=true
-document.getElementById("right").ontouchend=()=> rightPressed=false
+document.getElementById("right").ontouchstart=()=> right=true
+document.getElementById("right").ontouchend=()=> right=false
 
 document.getElementById("jump").onclick=()=>{
-if(!player.jumping){
-player.vy=-12
-player.jumping=true
+if(!player.jump){
+player.vy=-13
+player.jump=true
 }
 }
-
-window.addEventListener("load",()=>{
-let music=document.getElementById("music")
-music.play().catch(()=>{})
-})
 
 game()
 
 </script>
+
 </body>
 </html>
