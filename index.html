@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lịch Sử Việt Nam Pixel</title>
 
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
 
 <style>
 body{
 margin:0;
 font-family:sans-serif;
-background:#87ceeb;
-text-align:center;
+background:#6ec6ff;
+overflow:hidden;
 }
 
 #menu{
@@ -22,11 +22,22 @@ left:50%;
 transform:translate(-50%,-50%);
 background:white;
 padding:20px;
-border-radius:12px;
+border-radius:10px;
+text-align:center;
+}
+
+#questionBox{
+display:none;
+position:absolute;
+bottom:0;
+left:0;
+width:100%;
+background:white;
+padding:20px;
 }
 
 button{
-padding:10px 20px;
+padding:10px;
 margin:5px;
 font-size:16px;
 }
@@ -37,35 +48,38 @@ font-size:16px;
 
 <div id="menu">
 <h2>Lịch Sử Việt Nam Pixel</h2>
-
 <input id="name" placeholder="Nhập tên"><br><br>
 
-Chọn nhân vật<br>
 <button onclick="selectHero('hero')">Anh hùng</button>
 <button onclick="selectHero('student')">Áo dài</button><br><br>
 
 <button onclick="startGame()">Bắt đầu</button>
 </div>
 
+<div id="questionBox">
+<div id="questionText"></div>
+<div id="answers"></div>
+</div>
+
+<audio id="music" loop>
+<source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_3c2f0db1f2.mp3">
+</audio>
+
 <script>
 
 let playerType="hero";
 let score=0;
 let questionIndex=0;
+let sceneRef;
 
 const questions=[
 {
 q:"Ai lãnh đạo trận Bạch Đằng?",
-a:["Ngô Quyền","Lê Lợi","Gia Long","Quang Trung"],
+a:["Ngô Quyền","Lê Lợi","Quang Trung","Gia Long"],
 correct:0
 },
 {
-q:"Thăng Long đổi tên Hà Nội năm nào?",
-a:["1802","1831","1900","1945"],
-correct:1
-},
-{
-q:"Chiến thắng Điện Biên Phủ năm nào?",
+q:"Điện Biên Phủ năm nào?",
 a:["1950","1954","1968","1975"],
 correct:1
 },
@@ -78,6 +92,11 @@ correct:0
 q:"Việt Nam thống nhất năm nào?",
 a:["1973","1975","1980","1990"],
 correct:1
+},
+{
+q:"Thủ đô Việt Nam là?",
+a:["Huế","Hà Nội","Đà Nẵng","Sài Gòn"],
+correct:1
 }
 ];
 
@@ -87,26 +106,36 @@ playerType=type;
 
 function startGame(){
 document.getElementById("menu").style.display="none";
+document.getElementById("music").play();
 initGame();
 }
 
-function askQuestion(scene){
+function showQuestion(){
+let box=document.getElementById("questionBox");
+box.style.display="block";
+
 let q=questions[questionIndex];
 
-let answer=prompt(q.q+"\n\n"+
-"1."+q.a[0]+"\n"+
-"2."+q.a[1]+"\n"+
-"3."+q.a[2]+"\n"+
-"4."+q.a[3]);
+document.getElementById("questionText").innerText=q.q;
 
-if(answer-1==q.correct){
+let answersHTML="";
+q.a.forEach((ans,i)=>{
+answersHTML+=`<button onclick="answer(${i})">${ans}</button>`;
+});
+
+document.getElementById("answers").innerHTML=answersHTML;
+}
+
+function answer(i){
+let q=questions[questionIndex];
+
+if(i===q.correct){
 score++;
-alert("Đúng!");
-}else{
-alert("Sai!");
 }
 
 questionIndex++;
+
+document.getElementById("questionBox").style.display="none";
 
 if(questionIndex>=questions.length){
 alert("Hoàn thành!\nĐiểm: "+score+"/5");
@@ -122,13 +151,9 @@ width:window.innerWidth,
 height:window.innerHeight,
 physics:{
 default:"arcade",
-arcade:{gravity:{y:500}}
+arcade:{gravity:{y:600}}
 },
-scene:{
-preload,
-create,
-update
-}
+scene:{preload,create,update}
 };
 
 let player;
@@ -150,16 +175,15 @@ this.load.image("player","https://labs.phaser.io/assets/sprites/mushroom2.png");
 
 function create(){
 
-this.add.text(20,20,"Điểm: "+score,{fontSize:"20px",fill:"#000"});
+sceneRef=this;
 
 let platforms=this.physics.add.staticGroup();
 
-for(let i=0;i<20;i++){
-platforms.create(i*200,600,"ground").setScale(0.5).refreshBody();
+for(let i=0;i<15;i++){
+platforms.create(i*300,650,"ground").setScale(0.6).refreshBody();
 }
 
-player=this.physics.add.sprite(100,450,"player");
-player.setCollideWorldBounds(true);
+player=this.physics.add.sprite(100,500,"player");
 
 this.physics.add.collider(player,platforms);
 
@@ -168,14 +192,14 @@ cursors=this.input.keyboard.createCursorKeys();
 gates=this.physics.add.group();
 
 for(let i=1;i<=5;i++){
-let gate=gates.create(i*600,500,"gate");
-gate.setImmovable(true);
+gates.create(i*700,500,"gate");
 }
 
 this.physics.add.overlap(player,gates,(player,gate)=>{
 gate.destroy();
-askQuestion(this);
+showQuestion();
 });
+
 }
 
 function update(){
