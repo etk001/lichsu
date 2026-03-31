@@ -1,103 +1,118 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Pixel History Challenge</title>
+<title>Game Lịch Sử Pixel</title>
+
 <style>
 body{
-    background:#1b1f3a;
-    color:white;
-    font-family:monospace;
-    text-align:center;
-    margin-top:120px;
+background:#111827;
+color:white;
+font-family:Arial;
+text-align:center;
+padding-top:100px;
 }
+
 button{
-    padding:12px 24px;
-    font-size:18px;
-    border:none;
-    background:#ff4d4d;
-    color:white;
-    cursor:pointer;
+padding:14px 24px;
+font-size:18px;
+margin:10px;
+border:none;
+border-radius:8px;
+background:#ef4444;
+color:white;
+cursor:pointer;
 }
+
 button:hover{
-    background:#ff2e2e;
+background:#dc2626;
 }
+
 #game{
-    display:none;
-    margin-top:30px;
+display:none;
 }
-.answer{
-    display:block;
-    margin:10px;
-}
+
 </style>
 </head>
+
 <body>
 
 <h1>Pixel History Challenge</h1>
-<button onclick="startGame()">Bắt đầu</button>
+
+<button id="start">Bắt đầu chơi</button>
 
 <div id="game">
 <h2 id="question"></h2>
 <div id="answers"></div>
-<p id="result"></p>
 </div>
 
 <script>
+
+const startBtn = document.getElementById("start");
+const game = document.getElementById("game");
+const questionText = document.getElementById("question");
+const answersBox = document.getElementById("answers");
+
 const questions = [
 {
-q:"Ai là người đọc Tuyên ngôn Độc lập năm 1945?",
-a:["Hồ Chí Minh","Võ Nguyên Giáp","Phan Bội Châu","Trần Hưng Đạo"],
+question:"Ai đọc Tuyên ngôn Độc lập năm 1945?",
+answers:["Hồ Chí Minh","Võ Nguyên Giáp","Ngô Quyền","Quang Trung"],
 correct:0
 },
 {
-q:"Chiến thắng Điện Biên Phủ diễn ra năm nào?",
-a:["1950","1954","1960","1975"],
+question:"Chiến thắng Điện Biên Phủ diễn ra năm nào?",
+answers:["1950","1954","1965","1975"],
 correct:1
 },
 {
-q:"Thăng Long đổi tên thành Hà Nội năm nào?",
-a:["1831","1900","1945","1976"],
+question:"Trận Bạch Đằng nổi tiếng do ai lãnh đạo?",
+answers:["Ngô Quyền","Lê Lợi","Trần Nhân Tông","Gia Long"],
 correct:0
 }
 ];
 
 let current = 0;
 
-function startGame(){
-document.querySelector("button").style.display="none";
-document.getElementById("game").style.display="block";
-showQuestion();
-}
+startBtn.onclick = function(){
+startBtn.style.display = "none";
+game.style.display = "block";
+loadQuestion();
+};
 
-function showQuestion(){
+function loadQuestion(){
 let q = questions[current];
-document.getElementById("question").innerText = q.q;
-let html="";
-q.a.forEach((ans,i)=>{
-html += <button class="answer" onclick="checkAnswer(${i})">${ans}</button>;
+questionText.innerText = q.question;
+
+answersBox.innerHTML = "";
+
+q.answers.forEach((ans,i)=>{
+let btn = document.createElement("button");
+btn.innerText = ans;
+btn.onclick = function(){
+checkAnswer(i);
+};
+answersBox.appendChild(btn);
 });
-document.getElementById("answers").innerHTML = html;
 }
 
 function checkAnswer(i){
-if(i===questions[current].correct){
-document.getElementById("result").innerText="Đúng!";
+if(i === questions[current].correct){
+alert("Đúng!");
 }else{
-document.getElementById("result").innerText="Sai!";
+alert("Sai!");
 }
+
 current++;
+
 if(current < questions.length){
-setTimeout(()=>{
-document.getElementById("result").innerText="";
-showQuestion();
-},1000);
+loadQuestion();
 }else{
-setTimeout(()=>{
-document.getElementById("game").innerHTML="<h2>Hoàn thành!</h2>";
-},1000);
+questionText.innerText = "Bạn đã hoàn thành game!";
+answersBox.innerHTML = "";
 }
 }
+
 </script>
 
 </body>
