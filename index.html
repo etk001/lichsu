@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Game Lịch Sử Việt Nam Pixel</title>
+<title>Game Lịch Sử Pixel</title>
 
 <style>
 body{
 margin:0;
 overflow:hidden;
 background:#87CEEB;
-font-family:sans-serif;
 }
 
 canvas{
@@ -24,63 +23,35 @@ bottom:20px;
 width:100%;
 display:flex;
 justify-content:center;
-gap:15px;
+gap:20px;
 }
 
 button{
-font-size:22px;
-padding:15px;
+font-size:24px;
+padding:18px;
 border:none;
-border-radius:10px;
+border-radius:12px;
 background:black;
 color:white;
-}
-
-.score{
-position:fixed;
-top:10px;
-left:10px;
-background:white;
-padding:8px 12px;
-border-radius:8px;
-font-size:20px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="score">Điểm: <span id="score">0</span></div>
-
 <canvas id="game"></canvas>
-  <button id="playMusic" style="
-position:fixed;
-top:10px;
-right:10px;
-z-index:10;
-padding:10px;
-font-size:16px;
-">Bật nhạc</button>
-  <audio id="music" loop>
-<source src="snaptt.me-35221248" type="audio/M4A">
-</audio>
 
 <div class="controls">
-<button onclick="moveLeft()">◀</button>
-<button onclick="jump()">▲</button>
-<button onclick="moveRight()">▶</button>
+<button id="left">◀</button>
+<button id="jump">▲</button>
+<button id="right">▶</button>
 </div>
 
-<audio id="music" loop>
+<audio id="music" autoplay loop>
 <source src="snaptt.me-35221248.m4a" type="audio/mp4">
 </audio>
 
-<script>const music = document.getElementById("music")
-const playBtn = document.getElementById("playMusic")
-
-playBtn.onclick = () => {
-music.play()
-}
+<script>
 
 const canvas = document.getElementById("game")
 const ctx = canvas.getContext("2d")
@@ -88,35 +59,20 @@ const ctx = canvas.getContext("2d")
 canvas.width = window.innerWidth
 canvas.height = window.innerHeight
 
-let score = 0
+let leftPressed=false
+let rightPressed=false
 
-let player = {
+let player={
 x:100,
 y:300,
 w:40,
 h:40,
 vy:0,
-speed:6,
+speed:5,
 jumping:false
 }
 
-const gravity = 0.7
-
-const questions = [
-"Ngô Quyền đánh bại quân nào trên sông Bạch Đằng?",
-"Chiến thắng Điện Biên Phủ năm bao nhiêu?",
-"Ai đọc Tuyên ngôn Độc lập 1945?",
-"Nhà Trần đánh bại quân nào?",
-"Thủ đô Việt Nam là gì?"
-]
-
-let gates = [
-{x:600, asked:false},
-{x:1200, asked:false},
-{x:1800, asked:false},
-{x:2400, asked:false},
-{x:3000, asked:false}
-]
+const gravity=0.6
 
 function drawGround(){
 for(let i=0;i<4000;i+=40){
@@ -128,84 +84,54 @@ ctx.fillRect(i,350,40,40)
 function drawPlayer(){
 ctx.fillStyle="#ffcc99"
 ctx.fillRect(player.x,player.y,player.w,player.h)
-
-ctx.fillStyle="red"
-ctx.fillRect(player.x+8,player.y+8,24,24)
-}
-
-function drawGates(){
-ctx.fillStyle="brown"
-gates.forEach(g=>{
-if(!g.asked){
-ctx.fillRect(g.x,280,40,70)
-}
-})
 }
 
 function game(){
+
 ctx.clearRect(0,0,canvas.width,canvas.height)
 
 ctx.save()
-ctx.translate(-player.x + 150,0)
+ctx.translate(-player.x+150,0)
 
 drawGround()
-drawGates()
 drawPlayer()
 
 ctx.restore()
 
+if(leftPressed) player.x -= player.speed
+if(rightPressed) player.x += player.speed
+
 player.y += player.vy
 player.vy += gravity
 
-if(player.y > 300){
-player.y = 300
-player.jumping = false
+if(player.y>300){
+player.y=300
+player.jumping=false
 }
-
-gates.forEach((g,i)=>{
-if(!g.asked && player.x > g.x-40){
-g.asked = true
-askQuestion(i)
-}
-})
 
 requestAnimationFrame(game)
 }
 
-function moveLeft(){
-player.x -= player.speed
-}
+document.getElementById("left").ontouchstart=()=> leftPressed=true
+document.getElementById("left").ontouchend=()=> leftPressed=false
 
-function moveRight(){
-player.x += player.speed
-}
+document.getElementById("right").ontouchstart=()=> rightPressed=true
+document.getElementById("right").ontouchend=()=> rightPressed=false
 
-function jump(){
+document.getElementById("jump").onclick=()=>{
 if(!player.jumping){
-player.vy = -14
-player.jumping = true
+player.vy=-12
+player.jumping=true
 }
 }
 
-function askQuestion(i){
-let answer = prompt(questions[i])
-
-if(answer){
-score += 5
-alert("Bạn được 5 điểm!")
-}
-
-document.getElementById("score").innerText = score
-}
-
-document.addEventListener("click", () => {
-let music = document.getElementById("music")
-if(music) music.play().catch(()=>{})
+window.addEventListener("load",()=>{
+let music=document.getElementById("music")
+music.play().catch(()=>{})
 })
 
 game()
 
 </script>
-
 </body>
 </html>
