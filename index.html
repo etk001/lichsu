@@ -5,217 +5,175 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lịch Sử Việt Nam Pixel</title>
 
-<script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js"></script>
 
 <style>
 body{
 margin:0;
-font-family:sans-serif;
-background:#6ec6ff;
 overflow:hidden;
+background:#2c3e50;
+font-family:sans-serif;
 }
 
-#menu{
-position:absolute;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-background:white;
-padding:20px;
-border-radius:10px;
-text-align:center;
-}
-
-#questionBox{
-display:none;
-position:absolute;
-bottom:0;
+#rotate{
+position:fixed;
+top:0;
 left:0;
 width:100%;
-background:white;
-padding:20px;
+height:100%;
+background:black;
+color:white;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:24px;
+z-index:10;
 }
 
-button{
+#ui{
+position:absolute;
+bottom:10px;
+width:100%;
+display:flex;
+justify-content:space-between;
 padding:10px;
-margin:5px;
-font-size:16px;
+}
+
+.btn{
+width:70px;
+height:70px;
+background:white;
+border-radius:50%;
+text-align:center;
+line-height:70px;
+font-size:30px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="menu">
-<h2>Lịch Sử Việt Nam Pixel</h2>
-<input id="name" placeholder="Nhập tên"><br><br>
+<div id="rotate">Xoay ngang điện thoại</div>
 
-<button onclick="selectHero('hero')">Anh hùng</button>
-<button onclick="selectHero('student')">Áo dài</button><br><br>
-
-<button onclick="startGame()">Bắt đầu</button>
+<div id="ui">
+<div>
+<div class="btn" id="left">◀</div>
+<div class="btn" id="right">▶</div>
 </div>
-
-<div id="questionBox">
-<div id="questionText"></div>
-<div id="answers"></div>
+<div>
+<div class="btn" id="jump">▲</div>
+</div>
 </div>
 
 <audio id="music" loop>
-<source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_3c2f0db1f2.mp3">
+<source src="https://cdn.pixabay.com/audio/2022/10/25/audio_9464b0c6bb.mp3">
 </audio>
 
 <script>
 
-let playerType="hero";
-let score=0;
-let questionIndex=0;
-let sceneRef;
-
 const questions=[
-{
-q:"Ai lãnh đạo trận Bạch Đằng?",
-a:["Ngô Quyền","Lê Lợi","Quang Trung","Gia Long"],
-correct:0
-},
-{
-q:"Điện Biên Phủ năm nào?",
-a:["1950","1954","1968","1975"],
-correct:1
-},
-{
-q:"Ai đọc Tuyên ngôn Độc lập?",
-a:["Hồ Chí Minh","Võ Nguyên Giáp","Phạm Văn Đồng","Trường Chinh"],
-correct:0
-},
-{
-q:"Việt Nam thống nhất năm nào?",
-a:["1973","1975","1980","1990"],
-correct:1
-},
-{
-q:"Thủ đô Việt Nam là?",
-a:["Huế","Hà Nội","Đà Nẵng","Sài Gòn"],
-correct:1
-}
+"Ngô Quyền đánh bại quân Nam Hán ở đâu?",
+"Chiến thắng Điện Biên Phủ năm?",
+"Thủ đô Việt Nam là?",
+"Việt Nam thống nhất năm?",
+"Ai đọc Tuyên ngôn độc lập?"
 ];
 
-function selectHero(type){
-playerType=type;
-}
-
-function startGame(){
-document.getElementById("menu").style.display="none";
-document.getElementById("music").play();
-initGame();
-}
+let qIndex=0;
 
 function showQuestion(){
-let box=document.getElementById("questionBox");
-box.style.display="block";
+let ans=prompt(questions[qIndex]);
+qIndex++;
 
-let q=questions[questionIndex];
-
-document.getElementById("questionText").innerText=q.q;
-
-let answersHTML="";
-q.a.forEach((ans,i)=>{
-answersHTML+=`<button onclick="answer(${i})">${ans}</button>`;
-});
-
-document.getElementById("answers").innerHTML=answersHTML;
-}
-
-function answer(i){
-let q=questions[questionIndex];
-
-if(i===q.correct){
-score++;
-}
-
-questionIndex++;
-
-document.getElementById("questionBox").style.display="none";
-
-if(questionIndex>=questions.length){
-alert("Hoàn thành!\nĐiểm: "+score+"/5");
+if(qIndex>=5){
+alert("Hoàn thành màn!");
 location.reload();
 }
 }
 
-function initGame(){
+function checkRotate(){
+if(window.innerWidth>window.innerHeight){
+document.getElementById("rotate").style.display="none";
+document.getElementById("music").play();
+}else{
+document.getElementById("rotate").style.display="flex";
+}
+}
+
+window.addEventListener("resize",checkRotate);
+checkRotate();
 
 const config={
 type:Phaser.AUTO,
 width:window.innerWidth,
 height:window.innerHeight,
-physics:{
-default:"arcade",
-arcade:{gravity:{y:600}}
-},
+physics:{default:"arcade"},
 scene:{preload,create,update}
 };
 
 let player;
 let cursors;
-let gates;
+let left=false;
+let right=false;
+let jump=false;
 
 new Phaser.Game(config);
 
 function preload(){
+this.load.image("bg","https://labs.phaser.io/assets/skies/space3.png");
 this.load.image("ground","https://labs.phaser.io/assets/sprites/platform.png");
-this.load.image("gate","https://labs.phaser.io/assets/sprites/block.png");
-
-if(playerType==="hero"){
 this.load.image("player","https://labs.phaser.io/assets/sprites/phaser-dude.png");
-}else{
-this.load.image("player","https://labs.phaser.io/assets/sprites/mushroom2.png");
-}
+this.load.image("gate","https://labs.phaser.io/assets/sprites/block.png");
 }
 
 function create(){
 
-sceneRef=this;
+this.add.image(400,200,"bg");
 
 let platforms=this.physics.add.staticGroup();
 
-for(let i=0;i<15;i++){
-platforms.create(i*300,650,"ground").setScale(0.6).refreshBody();
+for(let i=0;i<10;i++){
+platforms.create(i*200,600,"ground");
 }
 
-player=this.physics.add.sprite(100,500,"player");
+player=this.physics.add.sprite(100,450,"player");
 
 this.physics.add.collider(player,platforms);
 
-cursors=this.input.keyboard.createCursorKeys();
-
-gates=this.physics.add.group();
+let gates=this.physics.add.group();
 
 for(let i=1;i<=5;i++){
-gates.create(i*700,500,"gate");
+gates.create(i*600,500,"gate");
 }
 
-this.physics.add.overlap(player,gates,(player,gate)=>{
-gate.destroy();
+this.physics.add.overlap(player,gates,(p,g)=>{
+g.destroy();
 showQuestion();
 });
 
+document.getElementById("left").ontouchstart=()=>left=true;
+document.getElementById("left").ontouchend=()=>left=false;
+
+document.getElementById("right").ontouchstart=()=>right=true;
+document.getElementById("right").ontouchend=()=>right=false;
+
+document.getElementById("jump").ontouchstart=()=>jump=true;
+document.getElementById("jump").ontouchend=()=>jump=false;
 }
 
 function update(){
 
-if(cursors.left.isDown){
+if(left){
 player.setVelocityX(-200);
-}else if(cursors.right.isDown){
+}else if(right){
 player.setVelocityX(200);
 }else{
 player.setVelocityX(0);
 }
 
-if(cursors.up.isDown && player.body.touching.down){
-player.setVelocityY(-400);
-}
-
+if(jump){
+player.setVelocityY(-300);
+jump=false;
 }
 
 }
