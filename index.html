@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lịch Sử Việt Nam Pixel</title>
+<title>Game Lịch Sử Việt Nam Pixel</title>
 
 <style>
 body{
@@ -29,10 +29,10 @@ gap:15px;
 
 button{
 font-size:22px;
-padding:14px 20px;
-border-radius:10px;
+padding:15px;
 border:none;
-background:#222;
+border-radius:10px;
+background:black;
 color:white;
 }
 
@@ -40,10 +40,10 @@ color:white;
 position:fixed;
 top:10px;
 left:10px;
-font-size:20px;
 background:white;
-padding:6px 12px;
+padding:8px 12px;
 border-radius:8px;
+font-size:20px;
 }
 </style>
 </head>
@@ -51,15 +51,21 @@ border-radius:8px;
 <body>
 
 <div class="score">Điểm: <span id="score">0</span></div>
+
 <canvas id="game"></canvas>
 
 <div class="controls">
-<button onclick="left()">◀</button>
+<button onclick="moveLeft()">◀</button>
 <button onclick="jump()">▲</button>
-<button onclick="right()">▶</button>
+<button onclick="moveRight()">▶</button>
 </div>
 
+<audio id="music" loop>
+<source src="snaptt.me-35221248.m4a" type="audio/mp4">
+</audio>
+
 <script>
+
 const canvas = document.getElementById("game")
 const ctx = canvas.getContext("2d")
 
@@ -71,37 +77,36 @@ let score = 0
 let player = {
 x:100,
 y:300,
-w:50,
-h:50,
+w:40,
+h:40,
 vy:0,
 speed:6,
-jump:false
+jumping:false
 }
-
-let gates = [
-{ x:800, asked:false },
-{ x:1400, asked:false },
-{ x:2000, asked:false },
-{ x:2600, asked:false },
-{ x:3200, asked:false }
-]
 
 const gravity = 0.7
 
-function drawPixelGround(){
-for(let i=0;i<canvas.width;i+=40){
+const questions = [
+"Ngô Quyền đánh bại quân nào trên sông Bạch Đằng?",
+"Chiến thắng Điện Biên Phủ năm bao nhiêu?",
+"Ai đọc Tuyên ngôn Độc lập 1945?",
+"Nhà Trần đánh bại quân nào?",
+"Thủ đô Việt Nam là gì?"
+]
+
+let gates = [
+{x:600, asked:false},
+{x:1200, asked:false},
+{x:1800, asked:false},
+{x:2400, asked:false},
+{x:3000, asked:false}
+]
+
+function drawGround(){
+for(let i=0;i<4000;i+=40){
 ctx.fillStyle="#4CAF50"
 ctx.fillRect(i,350,40,40)
-
-ctx.fillStyle="#3e8e41"
-ctx.fillRect(i,370,40,20)
 }
-}
-
-function drawMountains(){
-ctx.fillStyle="#6b8e23"
-ctx.fillRect(400,260,120,90)
-ctx.fillRect(700,240,140,110)
 }
 
 function drawPlayer(){
@@ -109,75 +114,80 @@ ctx.fillStyle="#ffcc99"
 ctx.fillRect(player.x,player.y,player.w,player.h)
 
 ctx.fillStyle="red"
-ctx.fillRect(player.x+10,player.y+10,30,30)
+ctx.fillRect(player.x+8,player.y+8,24,24)
 }
 
-function drawGate(){
+function drawGates(){
 ctx.fillStyle="brown"
-ctx.fillRect(gate.x,gate.y,gate.w,gate.h)
-
-ctx.fillStyle="yellow"
-ctx.fillRect(gate.x+10,gate.y+10,40,20)
+gates.forEach(g=>{
+if(!g.asked){
+ctx.fillRect(g.x,280,40,70)
+}
+})
 }
 
 function game(){
 ctx.clearRect(0,0,canvas.width,canvas.height)
 
-drawMountains()
-drawPixelGround()
-drawGate()
+ctx.save()
+ctx.translate(-player.x + 150,0)
+
+drawGround()
+drawGates()
 drawPlayer()
+
+ctx.restore()
 
 player.y += player.vy
 player.vy += gravity
 
 if(player.y > 300){
 player.y = 300
-player.jump=false
+player.jumping = false
 }
 
-if(gate.active && player.x + player.w > gate.x){
-gate.active = false
-askQuestion()
+gates.forEach((g,i)=>{
+if(!g.asked && player.x > g.x-40){
+g.asked = true
+askQuestion(i)
 }
+})
 
 requestAnimationFrame(game)
 }
 
-function left(){
+function moveLeft(){
 player.x -= player.speed
 }
 
-function right(){
+function moveRight(){
 player.x += player.speed
 }
 
 function jump(){
-if(!player.jump){
+if(!player.jumping){
 player.vy = -14
-player.jump = true
+player.jumping = true
 }
 }
 
-function askQuestion(){
-let q = prompt("Chiến thắng Bạch Đằng năm 938 do ai lãnh đạo?")
+function askQuestion(i){
+let answer = prompt(questions[i])
 
-if(q && q.toLowerCase().includes("ngô quyền")){
+if(answer){
 score += 5
-alert("Đúng! +5 điểm")
-}else{
-alert("Sai rồi")
+alert("Bạn được 5 điểm!")
 }
 
 document.getElementById("score").innerText = score
 }
 
-game()
-  <canvas id="game"></canvas>
+document.addEventListener("click", () => {
+let music = document.getElementById("music")
+if(music) music.play().catch(()=>{})
+})
 
-<audio id="music" loop>
-<source src="snaptt.me-35221248" type="audio/mp4">
-</audio>
+game()
 
 </script>
 
