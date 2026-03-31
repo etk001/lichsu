@@ -11,32 +11,16 @@
 body{
 margin:0;
 overflow:hidden;
-background:#2c3e50;
-font-family:sans-serif;
-}
-
-#rotate{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
 background:black;
-color:white;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:24px;
-z-index:10;
 }
 
-#ui{
-position:absolute;
-bottom:10px;
+#controls{
+position:fixed;
+bottom:20px;
 width:100%;
 display:flex;
 justify-content:space-between;
-padding:10px;
+padding:20px;
 }
 
 .btn{
@@ -44,141 +28,137 @@ width:70px;
 height:70px;
 background:white;
 border-radius:50%;
-text-align:center;
-line-height:70px;
-font-size:30px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:28px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="rotate">Xoay ngang điện thoại</div>
-
-<div id="ui">
+<div id="controls">
 <div>
 <div class="btn" id="left">◀</div>
 <div class="btn" id="right">▶</div>
 </div>
-<div>
 <div class="btn" id="jump">▲</div>
-</div>
 </div>
 
 <audio id="music" loop>
-<source src="https://cdn.pixabay.com/audio/2022/10/25/audio_9464b0c6bb.mp3">
+<source src="https://cdn.pixabay.com/audio/2022/03/15/audio_3c2f0db1f2.mp3">
 </audio>
 
 <script>
 
+let left=false
+let right=false
+let jump=false
+
 const questions=[
-"Ngô Quyền đánh bại quân Nam Hán ở đâu?",
+"Ngô Quyền đánh thắng trên sông nào?",
 "Chiến thắng Điện Biên Phủ năm?",
-"Thủ đô Việt Nam là?",
+"Thủ đô Việt Nam?",
 "Việt Nam thống nhất năm?",
 "Ai đọc Tuyên ngôn độc lập?"
-];
+]
 
-let qIndex=0;
+let q=0
 
-function showQuestion(){
-let ans=prompt(questions[qIndex]);
-qIndex++;
+function ask(){
+alert(questions[q])
+q++
 
-if(qIndex>=5){
-alert("Hoàn thành màn!");
-location.reload();
+if(q>=5){
+alert("Hoàn thành màn!")
+location.reload()
 }
 }
 
-function checkRotate(){
-if(window.innerWidth>window.innerHeight){
-document.getElementById("rotate").style.display="none";
-document.getElementById("music").play();
-}else{
-document.getElementById("rotate").style.display="flex";
-}
-}
+document.getElementById("left").ontouchstart=()=>left=true
+document.getElementById("left").ontouchend=()=>left=false
 
-window.addEventListener("resize",checkRotate);
-checkRotate();
+document.getElementById("right").ontouchstart=()=>right=true
+document.getElementById("right").ontouchend=()=>right=false
+
+document.getElementById("jump").ontouchstart=()=>jump=true
 
 const config={
 type:Phaser.AUTO,
 width:window.innerWidth,
 height:window.innerHeight,
-physics:{default:"arcade"},
+physics:{
+default:"arcade",
+arcade:{gravity:{y:800}}
+},
 scene:{preload,create,update}
-};
+}
 
-let player;
-let cursors;
-let left=false;
-let right=false;
-let jump=false;
+let player
+let platforms
+let gates
 
-new Phaser.Game(config);
+new Phaser.Game(config)
 
 function preload(){
-this.load.image("bg","https://labs.phaser.io/assets/skies/space3.png");
-this.load.image("ground","https://labs.phaser.io/assets/sprites/platform.png");
-this.load.image("player","https://labs.phaser.io/assets/sprites/phaser-dude.png");
-this.load.image("gate","https://labs.phaser.io/assets/sprites/block.png");
+
+this.load.image("sky","https://labs.phaser.io/assets/skies/sky4.png")
+this.load.image("ground","https://labs.phaser.io/assets/sprites/platform.png")
+this.load.image("player","https://labs.phaser.io/assets/sprites/phaser-dude.png")
+this.load.image("gate","https://labs.phaser.io/assets/sprites/block.png")
+
 }
 
 function create(){
 
-this.add.image(400,200,"bg");
+document.getElementById("music").play()
 
-let platforms=this.physics.add.staticGroup();
+this.add.image(400,200,"sky")
 
-for(let i=0;i<10;i++){
-platforms.create(i*200,600,"ground");
+platforms=this.physics.add.staticGroup()
+
+for(let i=0;i<20;i++){
+platforms.create(i*200,650,"ground").setScale(0.6).refreshBody()
 }
 
-player=this.physics.add.sprite(100,450,"player");
+player=this.physics.add.sprite(100,500,"player")
+player.setCollideWorldBounds(true)
 
-this.physics.add.collider(player,platforms);
+this.physics.add.collider(player,platforms)
 
-let gates=this.physics.add.group();
+gates=this.physics.add.group()
 
 for(let i=1;i<=5;i++){
-gates.create(i*600,500,"gate");
+gates.create(i*700,500,"gate")
 }
 
 this.physics.add.overlap(player,gates,(p,g)=>{
-g.destroy();
-showQuestion();
-});
+g.destroy()
+ask()
+})
 
-document.getElementById("left").ontouchstart=()=>left=true;
-document.getElementById("left").ontouchend=()=>left=false;
-
-document.getElementById("right").ontouchstart=()=>right=true;
-document.getElementById("right").ontouchend=()=>right=false;
-
-document.getElementById("jump").ontouchstart=()=>jump=true;
-document.getElementById("jump").ontouchend=()=>jump=false;
 }
 
 function update(){
 
 if(left){
-player.setVelocityX(-200);
-}else if(right){
-player.setVelocityX(200);
-}else{
-player.setVelocityX(0);
+player.setVelocityX(-220)
+}
+else if(right){
+player.setVelocityX(220)
+}
+else{
+player.setVelocityX(0)
 }
 
-if(jump){
-player.setVelocityY(-300);
-jump=false;
+if(jump && player.body.touching.down){
+player.setVelocityY(-500)
+jump=false
 }
 
 }
 
 </script>
-
 </body>
 </html>
