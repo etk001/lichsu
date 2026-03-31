@@ -5,160 +5,153 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lịch Sử Việt Nam Pixel</title>
 
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js"></script>
-
 <style>
 body{
 margin:0;
 overflow:hidden;
-background:black;
+background:#87c6ff;
+font-family:sans-serif;
 }
 
-#controls{
+canvas{
+display:block;
+image-rendering: pixelated;
+}
+
+/* nút điều khiển điện thoại */
+.controls{
 position:fixed;
 bottom:20px;
 width:100%;
 display:flex;
-justify-content:space-between;
-padding:20px;
+justify-content:center;
+gap:20px;
 }
 
-.btn{
-width:70px;
-height:70px;
-background:white;
-border-radius:50%;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:28px;
+button{
+font-size:20px;
+padding:15px 20px;
+border:none;
+border-radius:10px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="controls">
-<div>
-<div class="btn" id="left">◀</div>
-<div class="btn" id="right">▶</div>
-</div>
-<div class="btn" id="jump">▲</div>
+<canvas id="game"></canvas>
+
+<div class="controls">
+<button onclick="moveLeft()">←</button>
+<button onclick="jump()">↑</button>
+<button onclick="moveRight()">→</button>
 </div>
 
 <audio id="music" loop>
-<source src="https://cdn.pixabay.com/audio/2022/03/15/audio_3c2f0db1f2.mp3">
+<source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_8c6f1c7a7f.mp3">
 </audio>
 
 <script>
+const canvas = document.getElementById("game")
+const ctx = canvas.getContext("2d")
 
-let left=false
-let right=false
-let jump=false
+canvas.width = window.innerWidth
+canvas.height = window.innerHeight
 
-const questions=[
-"Ngô Quyền đánh thắng trên sông nào?",
-"Chiến thắng Điện Biên Phủ năm?",
-"Thủ đô Việt Nam?",
-"Việt Nam thống nhất năm?",
-"Ai đọc Tuyên ngôn độc lập?"
-]
+let player = {
+x:100,
+y:300,
+w:40,
+h:40,
+vy:0,
+jumping:false
+}
 
-let q=0
+let gravity = 0.8
 
-function ask(){
-alert(questions[q])
-q++
+let questionGate = {
+x:800,
+y:300,
+w:50,
+h:80
+}
 
-if(q>=5){
-alert("Hoàn thành màn!")
-location.reload()
+let asked = false
+
+function drawPixelBackground(){
+ctx.fillStyle="#5bbf5b"
+ctx.fillRect(0,350,canvas.width,200)
+
+ctx.fillStyle="#3aa33a"
+for(let i=0;i<canvas.width;i+=40){
+ctx.fillRect(i,330,20,20)
 }
 }
 
-document.getElementById("left").ontouchstart=()=>left=true
-document.getElementById("left").ontouchend=()=>left=false
-
-document.getElementById("right").ontouchstart=()=>right=true
-document.getElementById("right").ontouchend=()=>right=false
-
-document.getElementById("jump").ontouchstart=()=>jump=true
-
-const config={
-type:Phaser.AUTO,
-width:window.innerWidth,
-height:window.innerHeight,
-physics:{
-default:"arcade",
-arcade:{gravity:{y:800}}
-},
-scene:{preload,create,update}
+function drawPlayer(){
+ctx.fillStyle="#ffcc99"
+ctx.fillRect(player.x,player.y,player.w,player.h)
 }
 
-let player
-let platforms
-let gates
-
-new Phaser.Game(config)
-
-function preload(){
-
-this.load.image("sky","https://labs.phaser.io/assets/skies/sky4.png")
-this.load.image("ground","https://labs.phaser.io/assets/sprites/platform.png")
-this.load.image("player","https://labs.phaser.io/assets/sprites/phaser-dude.png")
-this.load.image("gate","https://labs.phaser.io/assets/sprites/block.png")
-
+function drawGate(){
+ctx.fillStyle="brown"
+ctx.fillRect(questionGate.x,questionGate.y,questionGate.w,questionGate.h)
 }
 
-function create(){
+function game(){
+ctx.clearRect(0,0,canvas.width,canvas.height)
 
+drawPixelBackground()
+drawGate()
+drawPlayer()
+
+player.y += player.vy
+player.vy += gravity
+
+if(player.y > 300){
+player.y = 300
+player.jumping=false
+}
+
+if(player.x + player.w > questionGate.x && !asked){
+asked = true
+askQuestion()
+}
+
+requestAnimationFrame(game)
+}
+
+function moveLeft(){
+player.x -= 20
+}
+
+function moveRight(){
+player.x += 20
+}
+
+function jump(){
+if(!player.jumping){
+player.vy = -15
+player.jumping=true
+}
+}
+
+function askQuestion(){
+let q = prompt("Ai là người đánh bại quân Nam Hán trên sông Bạch Đằng?")
+
+if(q && q.toLowerCase().includes("ngô quyền")){
+alert("Đúng rồi! +5 điểm")
+}else{
+alert("Chưa đúng")
+}
+}
+
+document.body.addEventListener("click",()=>{
 document.getElementById("music").play()
-
-this.add.image(400,200,"sky")
-
-platforms=this.physics.add.staticGroup()
-
-for(let i=0;i<20;i++){
-platforms.create(i*200,650,"ground").setScale(0.6).refreshBody()
-}
-
-player=this.physics.add.sprite(100,500,"player")
-player.setCollideWorldBounds(true)
-
-this.physics.add.collider(player,platforms)
-
-gates=this.physics.add.group()
-
-for(let i=1;i<=5;i++){
-gates.create(i*700,500,"gate")
-}
-
-this.physics.add.overlap(player,gates,(p,g)=>{
-g.destroy()
-ask()
 })
 
-}
-
-function update(){
-
-if(left){
-player.setVelocityX(-220)
-}
-else if(right){
-player.setVelocityX(220)
-}
-else{
-player.setVelocityX(0)
-}
-
-if(jump && player.body.touching.down){
-player.setVelocityY(-500)
-jump=false
-}
-
-}
-
+game()
 </script>
+
 </body>
 </html>
