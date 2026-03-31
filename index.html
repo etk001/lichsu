@@ -9,7 +9,7 @@
 body{
 margin:0;
 overflow:hidden;
-background:#87c6ff;
+background:#87CEEB;
 font-family:sans-serif;
 }
 
@@ -18,38 +18,46 @@ display:block;
 image-rendering: pixelated;
 }
 
-/* nút điều khiển điện thoại */
 .controls{
 position:fixed;
 bottom:20px;
 width:100%;
 display:flex;
 justify-content:center;
-gap:20px;
+gap:15px;
 }
 
 button{
-font-size:20px;
-padding:15px 20px;
-border:none;
+font-size:22px;
+padding:14px 20px;
 border-radius:10px;
+border:none;
+background:#222;
+color:white;
+}
+
+.score{
+position:fixed;
+top:10px;
+left:10px;
+font-size:20px;
+background:white;
+padding:6px 12px;
+border-radius:8px;
 }
 </style>
 </head>
 
 <body>
 
+<div class="score">Điểm: <span id="score">0</span></div>
 <canvas id="game"></canvas>
 
 <div class="controls">
-<button onclick="moveLeft()">←</button>
-<button onclick="jump()">↑</button>
-<button onclick="moveRight()">→</button>
+<button onclick="left()">◀</button>
+<button onclick="jump()">▲</button>
+<button onclick="right()">▶</button>
 </div>
-
-<audio id="music" loop>
-<source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_8c6f1c7a7f.mp3">
-</audio>
 
 <script>
 const canvas = document.getElementById("game")
@@ -58,50 +66,65 @@ const ctx = canvas.getContext("2d")
 canvas.width = window.innerWidth
 canvas.height = window.innerHeight
 
+let score = 0
+
 let player = {
 x:100,
 y:300,
-w:40,
-h:40,
-vy:0,
-jumping:false
-}
-
-let gravity = 0.8
-
-let questionGate = {
-x:800,
-y:300,
 w:50,
-h:80
+h:50,
+vy:0,
+speed:6,
+jump:false
 }
 
-let asked = false
+let gate = {
+x:1200,
+y:280,
+w:60,
+h:80,
+active:true
+}
 
-function drawPixelBackground(){
-ctx.fillStyle="#5bbf5b"
-ctx.fillRect(0,350,canvas.width,200)
+const gravity = 0.7
 
-ctx.fillStyle="#3aa33a"
+function drawPixelGround(){
 for(let i=0;i<canvas.width;i+=40){
-ctx.fillRect(i,330,20,20)
+ctx.fillStyle="#4CAF50"
+ctx.fillRect(i,350,40,40)
+
+ctx.fillStyle="#3e8e41"
+ctx.fillRect(i,370,40,20)
 }
+}
+
+function drawMountains(){
+ctx.fillStyle="#6b8e23"
+ctx.fillRect(400,260,120,90)
+ctx.fillRect(700,240,140,110)
 }
 
 function drawPlayer(){
 ctx.fillStyle="#ffcc99"
 ctx.fillRect(player.x,player.y,player.w,player.h)
+
+ctx.fillStyle="red"
+ctx.fillRect(player.x+10,player.y+10,30,30)
 }
 
 function drawGate(){
 ctx.fillStyle="brown"
-ctx.fillRect(questionGate.x,questionGate.y,questionGate.w,questionGate.h)
+ctx.fillRect(gate.x,gate.y,gate.w,gate.h)
+
+ctx.fillStyle="yellow"
+ctx.fillRect(gate.x+10,gate.y+10,40,20)
 }
 
 function game(){
 ctx.clearRect(0,0,canvas.width,canvas.height)
 
-drawPixelBackground()
+drawMountains()
+drawPixelGround()
 drawGate()
 drawPlayer()
 
@@ -110,45 +133,44 @@ player.vy += gravity
 
 if(player.y > 300){
 player.y = 300
-player.jumping=false
+player.jump=false
 }
 
-if(player.x + player.w > questionGate.x && !asked){
-asked = true
+if(gate.active && player.x + player.w > gate.x){
+gate.active = false
 askQuestion()
 }
 
 requestAnimationFrame(game)
 }
 
-function moveLeft(){
-player.x -= 20
+function left(){
+player.x -= player.speed
 }
 
-function moveRight(){
-player.x += 20
+function right(){
+player.x += player.speed
 }
 
 function jump(){
-if(!player.jumping){
-player.vy = -15
-player.jumping=true
+if(!player.jump){
+player.vy = -14
+player.jump = true
 }
 }
 
 function askQuestion(){
-let q = prompt("Ai là người đánh bại quân Nam Hán trên sông Bạch Đằng?")
+let q = prompt("Chiến thắng Bạch Đằng năm 938 do ai lãnh đạo?")
 
 if(q && q.toLowerCase().includes("ngô quyền")){
-alert("Đúng rồi! +5 điểm")
+score += 5
+alert("Đúng! +5 điểm")
 }else{
-alert("Chưa đúng")
-}
+alert("Sai rồi")
 }
 
-document.body.addEventListener("click",()=>{
-document.getElementById("music").play()
-})
+document.getElementById("score").innerText = score
+}
 
 game()
 </script>
