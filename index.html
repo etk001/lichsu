@@ -27,8 +27,8 @@ color:white;
 display:flex;
 justify-content:center;
 align-items:center;
-font-size:24px;
-z-index:10;
+font-size:26px;
+z-index:20;
 }
 
 #menu{
@@ -41,12 +41,12 @@ flex-direction:column;
 align-items:center;
 justify-content:center;
 color:white;
-z-index:5;
+z-index:10;
 }
 
 #controls{
 position:absolute;
-bottom:10px;
+bottom:0;
 width:100%;
 display:flex;
 justify-content:space-between;
@@ -57,7 +57,7 @@ width:90px;
 height:90px;
 background:rgba(255,255,255,0.25);
 border-radius:20px;
-margin:10px;
+margin:15px;
 }
 
 #scroll{
@@ -71,17 +71,18 @@ border:6px solid #7a4f1f;
 display:none;
 font-size:20px;
 max-width:80%;
+z-index:30;
 }
 </style>
 </head>
 
 <body>
 
-<div id="rotate">Hãy xoay ngang điện thoại để chơi</div>
+<div id="rotate">Hãy xoay ngang điện thoại</div>
 
 <div id="menu">
 <h1>Game Lịch Sử</h1>
-<input id="name" placeholder="Nhập tên">
+<input id="name" placeholder="Tên người chơi">
 <br>
 <button onclick="setChar(1)">Nhân vật Nam</button>
 <button onclick="setChar(2)">Nhân vật Nữ</button>
@@ -115,23 +116,23 @@ canvas.width=window.innerWidth
 canvas.height=window.innerHeight
 }
 resize()
-window.onresize=resize
+window.addEventListener("resize",resize)
 
 function checkRotate(){
 if(window.innerHeight>window.innerWidth){
-document.getElementById("rotate").style.display="flex"
+rotate.style.display="flex"
 }else{
-document.getElementById("rotate").style.display="none"
+rotate.style.display="none"
 }
 }
 checkRotate()
-window.onresize=checkRotate
+window.addEventListener("resize",checkRotate)
 
 let player={
-x:200,
-y:300,
+x:100,
+y:0,
 vy:0,
-speed:6,
+speed:7,
 jump:false
 }
 
@@ -157,45 +158,72 @@ const maps=[
 ]
 
 let mapImg=new Image()
+let mapIndex=0
 
 function randomMap(){
-let m=maps[Math.floor(Math.random()*maps.length)]
-mapImg.src=m
+mapIndex=Math.floor(Math.random()*maps.length)
+mapImg.src=maps[mapIndex]
 }
 randomMap()
 
 let left=false
 let right=false
 
-document.getElementById("left").ontouchstart=()=>left=true
-document.getElementById("left").ontouchend=()=>left=false
+/* MOBILE */
+leftBtn=document.getElementById("left")
+rightBtn=document.getElementById("right")
+jumpBtn=document.getElementById("jump")
 
-document.getElementById("right").ontouchstart=()=>right=true
-document.getElementById("right").ontouchend=()=>right=false
+leftBtn.ontouchstart=()=>left=true
+leftBtn.ontouchend=()=>left=false
 
-document.getElementById("jump").ontouchstart=()=>{
+rightBtn.ontouchstart=()=>right=true
+rightBtn.ontouchend=()=>right=false
+
+jumpBtn.ontouchstart=()=>{
 if(!player.jump){
-player.vy=-15
+player.vy=-18
 player.jump=true
 }
 }
 
+/* PC */
+document.addEventListener("keydown",(e)=>{
+if(e.key==="a") left=true
+if(e.key==="d") right=true
+if(e.key==="w"){
+if(!player.jump){
+player.vy=-18
+player.jump=true
+}
+}
+})
+
+document.addEventListener("keyup",(e)=>{
+if(e.key==="a") left=false
+if(e.key==="d") right=false
+})
+
 function startGame(){
-document.getElementById("menu").style.display="none"
+menu.style.display="none"
 document.getElementById("bgm").play()
 }
 
 function update(){
+
 if(left) player.x-=player.speed
 if(right) player.x+=player.speed
 
 player.y+=player.vy
 player.vy+=1
 
-if(player.y>canvas.height-150){
-player.y=canvas.height-150
+let ground=canvas.height-140
+
+if(player.y>ground){
+player.y=ground
 player.jump=false
 }
+
 }
 
 function draw(){
@@ -204,39 +232,44 @@ ctx.clearRect(0,0,canvas.width,canvas.height)
 
 ctx.drawImage(mapImg,0,0,canvas.width,canvas.height)
 
-/* FIX nền trắng nhân vật */
-ctx.save()
-ctx.globalCompositeOperation="source-over"
-ctx.drawImage(charImg,player.x,player.y,90,90)
-ctx.restore()
+ctx.drawImage(charImg,player.x,player.y,100,100)
+
+let scrollX=canvas.width-250
+let scrollY=canvas.height-150
 
 ctx.fillStyle="gold"
-ctx.fillRect(canvas.width-200,canvas.height-120,40,40)
+ctx.fillRect(scrollX,scrollY,50,50)
 
-if(player.x>canvas.width-220){
-showQuestion()
-}
+if(
+player.x+80>scrollX &&
+player.x<scrollX+50 &&
+player.y+80>scrollY
+){
+openQuestion()
 }
 
-function showQuestion(){
-let s=document.getElementById("scroll")
-s.style.display="block"
-s.innerHTML="Câu hỏi lịch sử<br><button onclick='nextMap()'>Trả lời</button>"
+}
+
+function openQuestion(){
+scroll.style.display="block"
+scroll.innerHTML=
+"Câu hỏi lịch sử<br><br><button onclick='nextMap()'>Trả lời</button>"
 }
 
 function nextMap(){
-document.getElementById("scroll").style.display="none"
+scroll.style.display="none"
 randomMap()
 player.x=100
 }
 
-function loop(){
+function gameLoop(){
 update()
 draw()
-requestAnimationFrame(loop)
+requestAnimationFrame(gameLoop)
 }
-loop()
+gameLoop()
 
 </script>
+
 </body>
 </html>
