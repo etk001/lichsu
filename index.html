@@ -4,12 +4,13 @@
 <meta charset="UTF-8">
 <title>Game Lịch Sử</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body{
 margin:0;
 overflow:hidden;
 background:black;
-font-family:sans-serif;
 }
 
 canvas{
@@ -17,37 +18,30 @@ display:block;
 image-rendering: pixelated;
 }
 
+#rotate{
+position:absolute;
+width:100%;
+height:100%;
+background:black;
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+font-size:24px;
+z-index:10;
+}
+
 #menu{
 position:absolute;
 width:100%;
 height:100%;
-background:rgba(0,0,0,0.8);
+background:rgba(0,0,0,0.85);
 display:flex;
 flex-direction:column;
 align-items:center;
 justify-content:center;
 color:white;
-}
-
-#menu input{
-padding:10px;
-font-size:18px;
-}
-
-#menu button{
-padding:10px 20px;
-margin:10px;
-font-size:18px;
-}
-
-#scoreUI{
-position:absolute;
-top:10px;
-left:10px;
-color:white;
-background:rgba(0,0,0,0.5);
-padding:10px;
-border-radius:10px;
+z-index:5;
 }
 
 #controls{
@@ -61,7 +55,7 @@ justify-content:space-between;
 .btn{
 width:90px;
 height:90px;
-background:rgba(255,255,255,0.3);
+background:rgba(255,255,255,0.25);
 border-radius:20px;
 margin:10px;
 }
@@ -73,27 +67,27 @@ left:50%;
 transform:translate(-50%,-50%);
 background:#f5e6c8;
 padding:30px;
-border:5px solid #8b5a2b;
+border:6px solid #7a4f1f;
 display:none;
-max-width:80%;
 font-size:20px;
+max-width:80%;
 }
 </style>
 </head>
 
 <body>
 
+<div id="rotate">Hãy xoay ngang điện thoại để chơi</div>
+
 <div id="menu">
-<h1>Game Lịch Sử Việt Nam</h1>
-<input id="playerName" placeholder="Nhập tên">
-<div>
+<h1>Game Lịch Sử</h1>
+<input id="name" placeholder="Nhập tên">
+<br>
 <button onclick="setChar(1)">Nhân vật Nam</button>
 <button onclick="setChar(2)">Nhân vật Nữ</button>
-</div>
+<br>
 <button onclick="startGame()">Bắt đầu</button>
 </div>
-
-<div id="scoreUI">Điểm: <span id="score">0</span></div>
 
 <div id="scroll"></div>
 
@@ -108,16 +102,30 @@ font-size:20px;
 </div>
 
 <audio id="bgm" loop src="amthanh.mp3"></audio>
-<audio id="correct" src="amthanh.mp3"></audio>
 
 <canvas id="game"></canvas>
 
 <script>
-const canvas = document.getElementById("game")
-const ctx = canvas.getContext("2d")
 
-canvas.width = window.innerWidth
-canvas.height = window.innerHeight
+const canvas=document.getElementById("game")
+const ctx=canvas.getContext("2d")
+
+function resize(){
+canvas.width=window.innerWidth
+canvas.height=window.innerHeight
+}
+resize()
+window.onresize=resize
+
+function checkRotate(){
+if(window.innerHeight>window.innerWidth){
+document.getElementById("rotate").style.display="flex"
+}else{
+document.getElementById("rotate").style.display="none"
+}
+}
+checkRotate()
+window.onresize=checkRotate
 
 let player={
 x:200,
@@ -126,8 +134,6 @@ vy:0,
 speed:6,
 jump:false
 }
-
-let score=0
 
 let charImg=new Image()
 charImg.src="nhanvat1.gif"
@@ -138,54 +144,45 @@ if(id==2) charImg.src="nhanvat2.gif"
 }
 
 const maps=[
-{img:"thanhhoa.png",q:"Lê Lợi khởi nghĩa ở đâu?",a:"Thanh Hóa"},
-{img:"thanglong.png",q:"Kinh đô Đại Việt thời Lê?",a:"Thăng Long"},
-{img:"batho.png",q:"Bài thơ Nam Quốc Sơn Hà nói về điều gì?",a:"Chủ quyền"},
-{img:"quoctugiam.png",q:"Trường đại học đầu tiên VN?",a:"Quốc Tử Giám"},
-{img:"thuathienhue.jpg",q:"Kinh đô triều Nguyễn?",a:"Huế"},
-{img:"dienkinhthien.png",q:"Nằm trong Hoàng thành?",a:"Điện Kính Thiên"},
-{img:"hoankiem.jpg",q:"Hồ gắn với vua Lê Lợi?",a:"Hoàn Kiếm"},
-{img:"hoian.jpg",q:"Thương cảng nổi tiếng?",a:"Hội An"},
-{img:"quangnam.jpg",q:"Tỉnh có Hội An?",a:"Quảng Nam"},
-{img:"dentho.png",q:"Nơi thờ vua?",a:"Đền"}
+"thanhhoa.png",
+"thanglong.png",
+"batho.png",
+"quoctugiam.png",
+"thuathienhue.jpg",
+"dienkinhthien.png",
+"hoankiem.jpg",
+"hoian.jpg",
+"quangnam.jpg",
+"dentho.png"
 ]
 
-let mapIndex=0
 let mapImg=new Image()
 
 function randomMap(){
-mapIndex=Math.floor(Math.random()*maps.length)
-mapImg.src=maps[mapIndex].img
+let m=maps[Math.floor(Math.random()*maps.length)]
+mapImg.src=m
 }
+randomMap()
 
 let left=false
 let right=false
 
-function setupControls(){
-const L=document.getElementById("left")
-const R=document.getElementById("right")
-const J=document.getElementById("jump")
+document.getElementById("left").ontouchstart=()=>left=true
+document.getElementById("left").ontouchend=()=>left=false
 
-L.ontouchstart=()=>left=true
-L.ontouchend=()=>left=false
+document.getElementById("right").ontouchstart=()=>right=true
+document.getElementById("right").ontouchend=()=>right=false
 
-R.ontouchstart=()=>right=true
-R.ontouchend=()=>right=false
-
-J.ontouchstart=()=>{
+document.getElementById("jump").ontouchstart=()=>{
 if(!player.jump){
 player.vy=-15
 player.jump=true
 }
 }
-}
-
-setupControls()
 
 function startGame(){
 document.getElementById("menu").style.display="none"
 document.getElementById("bgm").play()
-randomMap()
 }
 
 function update(){
@@ -195,50 +192,51 @@ if(right) player.x+=player.speed
 player.y+=player.vy
 player.vy+=1
 
-if(player.y>300){
-player.y=300
+if(player.y>canvas.height-150){
+player.y=canvas.height-150
 player.jump=false
 }
 }
 
 function draw(){
+
 ctx.clearRect(0,0,canvas.width,canvas.height)
+
 ctx.drawImage(mapImg,0,0,canvas.width,canvas.height)
+
+/* FIX nền trắng nhân vật */
+ctx.save()
+ctx.globalCompositeOperation="source-over"
 ctx.drawImage(charImg,player.x,player.y,90,90)
+ctx.restore()
 
 ctx.fillStyle="gold"
-ctx.fillRect(700,320,40,40)
+ctx.fillRect(canvas.width-200,canvas.height-120,40,40)
 
-if(player.x>680 && player.x<760){
+if(player.x>canvas.width-220){
 showQuestion()
 }
 }
 
 function showQuestion(){
-const scroll=document.getElementById("scroll")
-scroll.style.display="block"
-scroll.innerHTML=
-maps[mapIndex].q +
-"<br><button onclick='correctAnswer()'>Trả lời</button>"
+let s=document.getElementById("scroll")
+s.style.display="block"
+s.innerHTML="Câu hỏi lịch sử<br><button onclick='nextMap()'>Trả lời</button>"
 }
 
-function correctAnswer(){
-document.getElementById("correct").play()
-score++
-document.getElementById("score").innerText=score
+function nextMap(){
 document.getElementById("scroll").style.display="none"
 randomMap()
 player.x=100
 }
 
-function gameLoop(){
+function loop(){
 update()
 draw()
-requestAnimationFrame(gameLoop)
+requestAnimationFrame(loop)
 }
+loop()
 
-gameLoop()
 </script>
-
 </body>
 </html>
