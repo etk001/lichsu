@@ -3,62 +3,59 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Game Lịch Sử Việt Nam Pixel</title>
+<title>Lịch Sử Việt Nam Pixel</title>
 
 <style>
 body{
 margin:0;
 overflow:hidden;
-background:#87CEEB;
+background:black;
 font-family:sans-serif;
 }
 
 canvas{
 display:block;
-image-rendering: pixelated;
+image-rendering:pixelated;
 }
 
-.controls{
-position:fixed;
-bottom:15px;
+.startScreen{
+position:absolute;
 width:100%;
+height:100%;
 display:flex;
+flex-direction:column;
 justify-content:center;
-gap:20px;
+align-items:center;
+background:black;
+color:white;
 }
 
 button{
-font-size:24px;
-padding:16px;
-border:none;
-border-radius:10px;
-background:#000;
-color:#fff;
-}
-
-.score{
-position:fixed;
-top:10px;
-left:10px;
-background:white;
-padding:6px 10px;
-border-radius:8px;
+padding:12px 20px;
 font-size:18px;
+margin:8px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="score">Điểm: <span id="score">0</span></div>
+<div class="startScreen" id="startScreen">
+
+<img src="thongbao.png" width="300">
+
+<br>
+
+<input id="playerName" placeholder="Nhập tên">
+
+<br>
+
+<button onclick="selectCharacter(1)">Nhân vật 1</button>
+<button onclick="selectCharacter(2)">Nhân vật 2</button>
+
+</div>
 
 <canvas id="game"></canvas>
-
-<div class="controls">
-<button id="left">◀</button>
-<button id="jump">▲</button>
-<button id="right">▶</button>
-</div>
 
 <audio id="music" loop>
 <source src="amthanh.mp3" type="audio/mpeg">
@@ -74,124 +71,111 @@ canvas.height = window.innerHeight
 
 const music = document.getElementById("music")
 
-document.body.addEventListener("touchstart", () => {
+document.body.addEventListener("touchstart",()=>{
 music.play()
 },{once:true})
 
-let left=false
-let right=false
+let playerName=""
+let character=null
 
-let score=0
+const maps = [
+"thanhhoa.png",
+"thanglong.png",
+"batho.png",
+"quoctugiam.png",
+"thuathienhue.png",
+"dienkinhthien.png",
+"hoankiem.png",
+"hoian.png",
+"quangnam.png",
+"dentho.png"
+]
 
-let player={
-x:100,
+const questions = [
+"Câu hỏi 1",
+"Câu hỏi 2",
+"Câu hỏi 3",
+"Câu hỏi 4",
+"Câu hỏi 5",
+"Câu hỏi 6",
+"Câu hỏi 7",
+"Câu hỏi 8",
+"Câu hỏi 9",
+"Câu hỏi 10"
+]
+
+let mapIndex = Math.floor(Math.random()*maps.length)
+
+let mapImage = new Image()
+mapImage.src = maps[mapIndex]
+
+let playerImg = new Image()
+
+function selectCharacter(id){
+
+playerName = document.getElementById("playerName").value
+
+if(playerName==""){
+alert("Nhập tên trước")
+return
+}
+
+if(id===1){
+playerImg.src = "ChatGPT Image 18_08_54 1 thg 4, 2026.png"
+}
+
+document.getElementById("startScreen").style.display="none"
+
+startGame()
+}
+
+let player = {
+x:200,
 y:300,
-w:42,
-h:42,
-vy:0,
-jump:false,
-speed:5
+speed:4
 }
 
-const gravity=0.7
+let scrollX = 0
 
-const questions=[
-"Ngô Quyền đánh bại quân nào trên sông Bạch Đằng?",
-"Chiến thắng Điện Biên Phủ năm bao nhiêu?",
-"Ai đọc Tuyên ngôn Độc lập 1945?",
-"Nhà Trần đánh bại quân nào?",
-"Thủ đô Việt Nam là gì?"
-]
+function startGame(){
 
-let gates=[
-{ x:700, asked:false },
-{ x:1300, asked:false },
-{ x:1900, asked:false },
-{ x:2500, asked:false },
-{ x:3100, asked:false }
-]
+gameLoop()
 
-function drawMap(){
-for(let i=0;i<4000;i+=40){
-ctx.fillStyle="#3aa655"
-ctx.fillRect(i,350,40,40)
-}
 }
 
-function drawPlayer(){
-ctx.fillStyle="#ffd7b5"
-ctx.fillRect(player.x,player.y,player.w,player.h)
-
-ctx.fillStyle="#c0392b"
-ctx.fillRect(player.x+10,player.y+10,20,20)
-}
-
-function drawGates(){
-ctx.fillStyle="#8e5a2b"
-gates.forEach(g=>{
-if(!g.asked){
-ctx.fillRect(g.x,280,40,70)
-}
-})
-}
-
-function askQuestion(i){
-let a=prompt(questions[i])
-if(a){
-score+=5
-alert("Đúng hoặc đã trả lời! +5 điểm")
-}
-document.getElementById("score").innerText=score
-}
-
-function game(){
+function gameLoop(){
 
 ctx.clearRect(0,0,canvas.width,canvas.height)
 
-ctx.save()
-ctx.translate(-player.x+150,0)
+ctx.drawImage(mapImage, -scrollX, 0, 2000, canvas.height)
 
-drawMap()
-drawGates()
-drawPlayer()
+ctx.drawImage(playerImg, player.x, player.y, 80, 80)
 
-ctx.restore()
+requestAnimationFrame(gameLoop)
 
-if(left) player.x -= player.speed
-if(right) player.x += player.speed
-
-player.y += player.vy
-player.vy += gravity
-
-if(player.y>300){
-player.y=300
-player.jump=false
 }
 
-gates.forEach((g,i)=>{
-if(!g.asked && player.x>g.x-30){
-g.asked=true
-askQuestion(i)
+document.addEventListener("keydown",(e)=>{
+
+if(e.key==="ArrowRight"){
+scrollX += player.speed
 }
+
+if(e.key==="ArrowLeft"){
+scrollX -= player.speed
+}
+
+if(e.key===" "){
+openScroll()
+}
+
 })
 
-requestAnimationFrame(game)
+function openScroll(){
+
+alert(questions[mapIndex])
+
 }
-
-document.getElementById("left").ontouchstart=()=> left=true
-document.getElementById("left").ontouchend=()=> left=false
-
-document.getElementById("right").ontouchstart=()=> right=true
-document.getElementById("right").ontouchend=()=> right=false
-
-document.getElementById("jump").onclick=()=>{
-if(!player.jump){
-player.vy=-13
-player.jump=true
-}
-}
-
-game()
 
 </script>
 
