@@ -9,274 +9,235 @@ body{
 margin:0;
 overflow:hidden;
 background:black;
+font-family:sans-serif;
 }
 
 canvas{
 display:block;
-margin:auto;
-background:black;
 image-rendering: pixelated;
 }
 
-#startScreen{
-position:fixed;
+#menu{
+position:absolute;
 width:100%;
 height:100%;
-background:black;
+background:rgba(0,0,0,0.8);
 display:flex;
-justify-content:center;
-align-items:center;
 flex-direction:column;
+align-items:center;
+justify-content:center;
 color:white;
 }
 
+#menu input{
+padding:10px;
+font-size:18px;
+}
+
+#menu button{
+padding:10px 20px;
+margin:10px;
+font-size:18px;
+}
+
+#scoreUI{
+position:absolute;
+top:10px;
+left:10px;
+color:white;
+background:rgba(0,0,0,0.5);
+padding:10px;
+border-radius:10px;
+}
+
 #controls{
-position:fixed;
-bottom:20px;
+position:absolute;
+bottom:10px;
 width:100%;
 display:flex;
 justify-content:space-between;
-padding:20px;
 }
 
 .btn{
 width:90px;
 height:90px;
-background:rgba(255,255,255,0.2);
-border-radius:50%;
-display:flex;
-justify-content:center;
-align-items:center;
-font-size:28px;
-color:white;
+background:rgba(255,255,255,0.3);
+border-radius:20px;
+margin:10px;
 }
 
-#score{
-position:fixed;
-top:10px;
-left:10px;
-color:white;
-font-size:22px;
+#scroll{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:#f5e6c8;
+padding:30px;
+border:5px solid #8b5a2b;
+display:none;
+max-width:80%;
+font-size:20px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="startScreen">
-
-<img src="thongbao.png" width="400"><br>
-
-<input id="playerName" placeholder="Tên người chơi"><br><br>
-
-Chọn nhân vật<br><br>
-
-<button onclick="selectChar(1)">Nhân vật Nam</button>
-<button onclick="selectChar(2)">Nhân vật Nữ</button><br><br>
-
+<div id="menu">
+<h1>Game Lịch Sử Việt Nam</h1>
+<input id="playerName" placeholder="Nhập tên">
+<div>
+<button onclick="setChar(1)">Nhân vật Nam</button>
+<button onclick="setChar(2)">Nhân vật Nữ</button>
+</div>
 <button onclick="startGame()">Bắt đầu</button>
-
 </div>
 
-<div id="score">Điểm: 0</div>
+<div id="scoreUI">Điểm: <span id="score">0</span></div>
 
-<canvas id="game" width="1280" height="720"></canvas>
+<div id="scroll"></div>
 
 <div id="controls">
 <div>
-<div class="btn" id="left">◀</div>
-<div class="btn" id="right">▶</div>
+<div class="btn" id="left"></div>
+<div class="btn" id="right"></div>
 </div>
-<div class="btn" id="jump">▲</div>
+<div>
+<div class="btn" id="jump"></div>
 </div>
+</div>
+
+<audio id="bgm" loop src="amthanh.mp3"></audio>
+<audio id="correct" src="amthanh.mp3"></audio>
+
+<canvas id="game"></canvas>
 
 <script>
-
 const canvas = document.getElementById("game")
 const ctx = canvas.getContext("2d")
 
-const maps = [
-"thanhhoa.png",
-"thanglong.png",
-"batho.png",
-"quoctugiam.png",
-"thuathienhue.jpg",
-"dienkinhthien.png",
-"hoankiem.jpg",
-"hoian.jpg",
-"quangnam.jpg",
-"dentho.png"
-]
+canvas.width = window.innerWidth
+canvas.height = window.innerHeight
 
-const questions = [
-{
-q:"Lê Thánh Tông thuộc triều đại nào?",
-a:["Nhà Lý","Nhà Lê","Nhà Trần"],
-correct:1
-},
-{
-q:"Văn Miếu Quốc Tử Giám nằm ở đâu?",
-a:["Huế","Hà Nội","Quảng Nam"],
-correct:1
-},
-{
-q:"Hồ Hoàn Kiếm thuộc thành phố nào?",
-a:["Huế","Hà Nội","Thanh Hóa"],
-correct:1
-},
-{
-q:"Hội An thuộc tỉnh nào?",
-a:["Quảng Nam","Huế","Nghệ An"],
-correct:0
-},
-{
-q:"Kinh thành Huế nằm ở đâu?",
-a:["Huế","Hà Nội","Đà Nẵng"],
-correct:0
-},
-{
-q:"Điện Kính Thiên nằm ở đâu?",
-a:["Thăng Long","Huế","Hội An"],
-correct:0
-},
-{
-q:"Thanh Hóa nổi tiếng với triều đại nào?",
-a:["Nhà Lê","Nhà Nguyễn","Nhà Lý"],
-correct:0
-},
-{
-q:"Bà Triệu nổi tiếng ở đâu?",
-a:["Thanh Hóa","Huế","Hà Nội"],
-correct:0
-},
-{
-q:"Thăng Long là tên cũ của?",
-a:["Hà Nội","Huế","Quảng Nam"],
-correct:0
-},
-{
-q:"Đền thờ vua thường gọi là?",
-a:["Miếu","Đình","Đền"],
-correct:2
-}
-]
-
-let mapIndex = Math.floor(Math.random()*maps.length)
-
-const mapImg = new Image()
-mapImg.src = maps[mapIndex]
-
-const playerImg = new Image()
-
-let selectedChar = 1
-
-function selectChar(n){
-selectedChar = n
-}
-
-const scrollImg = new Image()
-scrollImg.src = "thongbao.png"
-
-const music = new Audio("amthanh.mp3")
-music.loop = true
-
-let score = 0
-
-let player = {
+let player={
 x:200,
-y:500,
-vx:0,
+y:300,
 vy:0,
+speed:6,
 jump:false
 }
 
-let scroll = {
-x:900,
-y:520,
-taken:false
+let score=0
+
+let charImg=new Image()
+charImg.src="nhanvat1.gif"
+
+function setChar(id){
+if(id==1) charImg.src="nhanvat1.gif"
+if(id==2) charImg.src="nhanvat2.gif"
 }
+
+const maps=[
+{img:"thanhhoa.png",q:"Lê Lợi khởi nghĩa ở đâu?",a:"Thanh Hóa"},
+{img:"thanglong.png",q:"Kinh đô Đại Việt thời Lê?",a:"Thăng Long"},
+{img:"batho.png",q:"Bài thơ Nam Quốc Sơn Hà nói về điều gì?",a:"Chủ quyền"},
+{img:"quoctugiam.png",q:"Trường đại học đầu tiên VN?",a:"Quốc Tử Giám"},
+{img:"thuathienhue.jpg",q:"Kinh đô triều Nguyễn?",a:"Huế"},
+{img:"dienkinhthien.png",q:"Nằm trong Hoàng thành?",a:"Điện Kính Thiên"},
+{img:"hoankiem.jpg",q:"Hồ gắn với vua Lê Lợi?",a:"Hoàn Kiếm"},
+{img:"hoian.jpg",q:"Thương cảng nổi tiếng?",a:"Hội An"},
+{img:"quangnam.jpg",q:"Tỉnh có Hội An?",a:"Quảng Nam"},
+{img:"dentho.png",q:"Nơi thờ vua?",a:"Đền"}
+]
+
+let mapIndex=0
+let mapImg=new Image()
+
+function randomMap(){
+mapIndex=Math.floor(Math.random()*maps.length)
+mapImg.src=maps[mapIndex].img
+}
+
+let left=false
+let right=false
+
+function setupControls(){
+const L=document.getElementById("left")
+const R=document.getElementById("right")
+const J=document.getElementById("jump")
+
+L.ontouchstart=()=>left=true
+L.ontouchend=()=>left=false
+
+R.ontouchstart=()=>right=true
+R.ontouchend=()=>right=false
+
+J.ontouchstart=()=>{
+if(!player.jump){
+player.vy=-15
+player.jump=true
+}
+}
+}
+
+setupControls()
 
 function startGame(){
-
-document.getElementById("startScreen").style.display="none"
-
-if(selectedChar == 1){
-playerImg.src = "nhanvat1.gif"
-}else{
-playerImg.src = "nhanvat2.gif"
+document.getElementById("menu").style.display="none"
+document.getElementById("bgm").play()
+randomMap()
 }
 
-music.play()
+function update(){
+if(left) player.x-=player.speed
+if(right) player.x+=player.speed
 
-game()
-}
+player.y+=player.vy
+player.vy+=1
 
-function game(){
-
-ctx.clearRect(0,0,canvas.width,canvas.height)
-
-ctx.drawImage(mapImg,0,0,1280,720)
-
-ctx.drawImage(playerImg,player.x,player.y,90,90)
-
-if(!scroll.taken){
-ctx.drawImage(scrollImg,scroll.x,scroll.y,60,60)
-}
-
-player.x += player.vx
-player.y += player.vy
-
-player.vy += 0.5
-
-if(player.y > 500){
-player.y = 500
-player.vy = 0
+if(player.y>300){
+player.y=300
 player.jump=false
 }
+}
 
-if(
-player.x < scroll.x + 60 &&
-player.x + 90 > scroll.x &&
-player.y < scroll.y + 60 &&
-player.y + 90 > scroll.y &&
-!scroll.taken
-){
-scroll.taken = true
+function draw(){
+ctx.clearRect(0,0,canvas.width,canvas.height)
+ctx.drawImage(mapImg,0,0,canvas.width,canvas.height)
+ctx.drawImage(charImg,player.x,player.y,90,90)
+
+ctx.fillStyle="gold"
+ctx.fillRect(700,320,40,40)
+
+if(player.x>680 && player.x<760){
+showQuestion()
+}
+}
+
+function showQuestion(){
+const scroll=document.getElementById("scroll")
+scroll.style.display="block"
+scroll.innerHTML=
+maps[mapIndex].q +
+"<br><button onclick='correctAnswer()'>Trả lời</button>"
+}
+
+function correctAnswer(){
+document.getElementById("correct").play()
 score++
-document.getElementById("score").innerText = "Điểm: " + score
-alert(questions[mapIndex])
+document.getElementById("score").innerText=score
+document.getElementById("scroll").style.display="none"
+randomMap()
+player.x=100
 }
 
-requestAnimationFrame(game)
+function gameLoop(){
+update()
+draw()
+requestAnimationFrame(gameLoop)
 }
 
-function holdLeft(){ player.vx = -6 }
-function holdRight(){ player.vx = 6 }
-function stopMove(){ player.vx = 0 }
-
-function jump(){
-if(!player.jump){
-player.vy = -13
-player.jump = true
-}
-}
-
-document.getElementById("left").onmousedown = holdLeft
-document.getElementById("left").onmouseup = stopMove
-
-document.getElementById("right").onmousedown = holdRight
-document.getElementById("right").onmouseup = stopMove
-
-document.getElementById("jump").onmousedown = jump
-
-document.getElementById("left").ontouchstart = holdLeft
-document.getElementById("left").ontouchend = stopMove
-
-document.getElementById("right").ontouchstart = holdRight
-document.getElementById("right").ontouchend = stopMove
-
-document.getElementById("jump").ontouchstart = jump
-
+gameLoop()
 </script>
 
 </body>
