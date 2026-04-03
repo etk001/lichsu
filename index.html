@@ -1,234 +1,239 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game Lịch Sử</title>
 
 <style>
-body{margin:0;overflow:hidden;background:black;}
-canvas{display:block;}
-
-#menu{
-position:fixed;width:100%;height:100%;
-background:black;color:white;
-display:flex;flex-direction:column;
-align-items:center;justify-content:center;
-z-index:10;
+body{
+margin:0;
+overflow:hidden;
+background:black;
 }
 
-#quiz{
-position:fixed;top:50%;left:50%;
-transform:translate(-50%,-50%);
-background:#f5deb3;padding:20px;
-border-radius:10px;display:none;
-z-index:20;
+/* canvas */
+canvas{
+display:block;
+width:100vw;
+height:100vh;
 }
 
-#controls{
-position:fixed;bottom:20px;width:100%;
-display:flex;justify-content:space-between;
-padding:0 20px;
+/* nút mobile */
+.controls{
+position:fixed;
+bottom:20px;
+width:100%;
+display:flex;
+justify-content:space-between;
+pointer-events:none;
 }
 
 .btn{
-width:70px;height:70px;
-background:rgba(255,255,255,0.3);
+width:70px;
+height:70px;
 border-radius:50%;
+background:rgba(255,255,255,0.3);
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:30px;
+pointer-events:auto;
+}
+
+.left{
+display:flex;
+gap:10px;
+margin-left:20px;
+}
+
+.right{
+margin-right:20px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="menu">
-<h1>Game Lịch Sử</h1>
-<input id="name" placeholder="Tên">
-<button onclick="selectChar(1)">Nam</button>
-<button onclick="selectChar(2)">Nữ</button>
-<button onclick="startGame()">Bắt đầu</button>
-</div>
-
-<div id="quiz">
-<p id="question"></p>
-<button onclick="answer(true)">✔</button>
-<button onclick="answer(false)">✖</button>
-</div>
+<audio id="music" src="amthanh.mp3" loop></audio>
 
 <canvas id="game"></canvas>
 
-<div id="controls">
-<div>
-<div class="btn" ontouchstart="left=true" ontouchend="left=false"></div>
-<div class="btn" ontouchstart="right=true" ontouchend="right=false"></div>
+<div class="controls">
+<div class="left">
+<div class="btn" id="left">◀</div>
+<div class="btn" id="right">▶</div>
 </div>
-<div class="btn" ontouchstart="jump=true" ontouchend="jump=false"></div>
+<div class="right">
+<div class="btn" id="jump">▲</div>
+</div>
 </div>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-canvas.width = innerWidth;
-canvas.height = innerHeight;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-let player={x:100,y:300,w:60,h:60,dx:0,dy:0,onGround:false,dir:1};
+/* load ảnh */
+const playerImg = new Image();
+playerImg.src = "nhanvat1.gif";
 
-let gravity=1;
-let left=false,right=false,jump=false;
-let scrollX=0,score=0;
-
-let charImg=new Image();
-let mapImg=new Image();
-let currentQuestion="";
-let loaded=false;
-
-let maps=[
-"thanhhoa.png","thanglong.png","batho.png",
-"quoctugiam.png","thuathienhue.jpg",
-"dienkinhthien.png","hoankiem.jpg",
-"hoian.jpg","quangnam.jpg","dentho.png"
+const maps = [
+"thanhhoa.png",
+"thanglong.png",
+"batho.png",
+"quoctugiam.png",
+"thuathienhue.jpg",
+"dienkinhthien.png",
+"hoankiem.jpg",
+"hoian.jpg",
+"quangnam.jpg",
+"dentho.png"
 ];
 
-let questions=[
-"Đây là Thanh Hóa?","Đây là Thăng Long?","Đây là Bát Thọ?",
-"Đây là Quốc Tử Giám?","Đây là Huế?",
-"Đây là Điện Kính Thiên?","Đây là Hồ Gươm?",
-"Đây là Hội An?","Đây là Quảng Nam?","Đây là Đền Thờ?"
-];
+let mapImg = new Image();
+mapImg.src = maps[Math.floor(Math.random()*maps.length)];
 
-function selectChar(n){
-charImg.src = n==1 ? "nhanvat1.gif" : "nhanvat2.gif";
+/* player */
+let player = {
+x:100,
+y:300,
+w:60,
+h:60,
+vx:0,
+vy:0,
+ground:300
+};
+
+/* control */
+let keys = {
+left:false,
+right:false,
+jump:false
+};
+
+/* mobile hold */
+function hold(btn, key){
+btn.addEventListener("touchstart",()=>keys[key]=true);
+btn.addEventListener("touchend",()=>keys[key]=false);
 }
 
-function startGame(){
-document.getElementById("menu").style.display="none";
+hold(document.getElementById("left"),"left");
+hold(document.getElementById("right"),"right");
+hold(document.getElementById("jump"),"jump");
 
-let music=new Audio("amthanh.mp3");
-music.loop=true;
-music.play().catch(()=>{});
+/* PC */
+document.addEventListener("keydown",e=>{
+if(e.key==="a") keys.left=true;
+if(e.key==="d") keys.right=true;
+if(e.key==="w") keys.jump=true;
+});
 
-loadMap();
+document.addEventListener("keyup",e=>{
+if(e.key==="a") keys.left=false;
+if(e.key==="d") keys.right=false;
+if(e.key==="w") keys.jump=false;
+});
+
+/* physics */
+let gravity = 0.5;
+
+/* scroll */
+let scrollX = 0;
+
+/* scroll object (trigger câu hỏi) */
+let scrollObj = {
+x:800,
+y:300,
+w:40,
+h:40
+};
+
+let showQuestion = false;
+let score = 0;
+
+/* update */
+function update(){
+
+player.vx = 0;
+
+if(keys.left) player.vx = -5;
+if(keys.right) player.vx = 5;
+
+if(keys.jump && player.y >= player.ground){
+player.vy = -10;
 }
 
-function loadMap(){
-loaded=false;
+player.vy += gravity;
+player.y += player.vy;
+player.x += player.vx;
 
-let i=Math.floor(Math.random()*maps.length);
-mapImg.src=maps[i];
-currentQuestion=questions[i];
-
-mapImg.onload=()=>{loaded=true;}
-
-player.x=100;
-player.y=300;
-scrollX=0;
+if(player.y > player.ground){
+player.y = player.ground;
+player.vy = 0;
 }
 
-function gameLoop(){
+/* camera */
+scrollX += player.vx;
+
+/* va chạm scroll */
+if(
+player.x > scrollObj.x - scrollX &&
+player.x < scrollObj.x - scrollX + scrollObj.w
+){
+showQuestion = true;
+}
+
+}
+
+/* draw */
+function draw(){
+
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
-/* FIX MÀN ĐEN */
-if(!loaded || !charImg.complete){
-ctx.fillStyle="white";
-ctx.fillText("Đang tải...",50,50);
-requestAnimationFrame(gameLoop);
-return;
-}
+/* map */
+ctx.drawImage(mapImg, -scrollX, 0, canvas.width*2, canvas.height);
 
-/* VẼ MAP */
-ctx.drawImage(mapImg,-scrollX,0,canvas.width,canvas.height);
-
-/* DI CHUYỂN */
-if(left){player.dx=-5;player.dir=-1;}
-else if(right){player.dx=5;player.dir=1;}
-else player.dx=0;
-
-if(jump && player.onGround){
-player.dy=-15;
-player.onGround=false;
-}
-
-player.dy+=gravity;
-player.x+=player.dx;
-player.y+=player.dy;
-
-/* SÀN */
-if(player.y>300){
-player.y=300;
-player.dy=0;
-player.onGround=true;
-}
-
-/* CAMERA */
-scrollX+=player.dx;
-
-/* NHÂN VẬT */
-ctx.save();
-ctx.translate(player.x,player.y);
-if(player.dir==-1){
-ctx.scale(-1,1);
-ctx.drawImage(charImg,-player.w,0,player.w,player.h);
-}else{
-ctx.drawImage(charImg,0,0,player.w,player.h);
-}
-ctx.restore();
-
-/* PLATFORM */
-ctx.fillStyle="green";
-ctx.fillRect(400-scrollX,250,120,20);
-ctx.fillRect(650-scrollX,200,120,20);
-
-/* GAI */
-ctx.fillStyle="red";
-ctx.fillRect(550-scrollX,320,50,20);
-
-/* CHẾT */
-if(player.x>550-scrollX && player.x<600-scrollX && player.y>300){
-reset();
-}
-
-/* CUỘN GIẤY */
-let scrollObj=900;
+/* scroll */
 ctx.fillStyle="yellow";
-ctx.fillRect(scrollObj-scrollX,280,40,40);
+ctx.fillRect(scrollObj.x - scrollX, scrollObj.y,40,40);
 
-if(player.x>scrollObj-scrollX-20){
-showQuestion();
-}
+/* player */
+ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
 
-/* ĐIỂM */
+/* score */
 ctx.fillStyle="white";
-ctx.fillText("Điểm: "+score,20,20);
+ctx.font="20px Arial";
+ctx.fillText("Điểm: "+score,20,30);
 
+/* câu hỏi */
+if(showQuestion){
+ctx.fillStyle="rgba(0,0,0,0.7)";
+ctx.fillRect(200,100,400,200);
+
+ctx.fillStyle="white";
+ctx.fillText("Đây là địa danh gì?",250,180);
+ctx.fillText("✔ / ✖",350,220);
+}
+
+}
+
+/* loop */
+function gameLoop(){
+update();
+draw();
 requestAnimationFrame(gameLoop);
-}
-
-function reset(){
-player.x=100;
-player.y=300;
-scrollX=0;
-}
-
-function showQuestion(){
-document.getElementById("quiz").style.display="block";
-document.getElementById("question").innerText=currentQuestion;
-}
-
-function answer(correct){
-document.getElementById("quiz").style.display="none";
-
-if(correct){
-new Audio("dung.mp3").play();
-score++;
-loadMap();
-}else{
-new Audio("sai.mp3").play();
-reset();
-}
 }
 
 gameLoop();
+
+/* nhạc */
+document.body.addEventListener("click",()=>{
+document.getElementById("music").play();
+},{once:true});
+
 </script>
 
 </body>
