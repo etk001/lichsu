@@ -3,269 +3,266 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Game Lịch Sử Pixel</title>
+<title>Game Lịch Sử Level 3</title>
 
 <style>
 body{
-margin:0;
-overflow:hidden;
-background:black;
-font-family:sans-serif;
+  margin:0;
+  overflow:hidden;
+  background:black;
 }
 
-/* Canvas */
 canvas{
-display:block;
-image-rendering: pixelated;
+  display:block;
 }
 
 /* MENU */
 #menu{
-position:fixed;
-top:0;left:0;
-width:100%;height:100%;
-background:url("thongbao.png") center/cover;
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-z-index:10;
-}
-
-input,select,button{
-padding:10px;
-margin:5px;
-font-size:18px;
-}
-
-/* CONTROL MOBILE */
-#controls{
-position:fixed;
-bottom:20px;
-left:0;
-right:0;
-display:flex;
-justify-content:space-between;
-padding:20px;
-}
-
-.btn{
-width:60px;
-height:60px;
-background:rgba(255,255,255,0.3);
-border-radius:50%;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:24px;
+  position:fixed;
+  width:100%;
+  height:100%;
+  background:black;
+  color:white;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  z-index:10;
 }
 
 /* QUIZ */
 #quiz{
-position:fixed;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-display:none;
-z-index:20;
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  background:#f5deb3;
+  padding:20px;
+  border-radius:10px;
+  display:none;
+  z-index:20;
 }
 
-#scroll{
-background:#f5deb3;
-padding:20px;
-border:4px solid brown;
-border-radius:10px;
-animation:roll 0.4s ease;
+/* MOBILE */
+#controls{
+  position:fixed;
+  bottom:20px;
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  padding:0 20px;
 }
 
-@keyframes roll{
-from{transform:scale(0)}
-to{transform:scale(1)}
+.btn{
+  width:70px;
+  height:70px;
+  background:rgba(255,255,255,0.3);
+  border-radius:50%;
 }
 </style>
 </head>
 
 <body>
 
-<!-- MENU -->
 <div id="menu">
-<h2>Game Lịch Sử</h2>
-<input id="name" placeholder="Nhập tên">
-<select id="char">
-<option value="1">Nhân vật Nam</option>
-<option value="2">Nhân vật Nữ</option>
-</select>
-<button onclick="startGame()">Bắt đầu</button>
+  <h1>Game Lịch Sử</h1>
+  <input id="name" placeholder="Tên">
+  <button onclick="selectChar(1)">Nam</button>
+  <button onclick="selectChar(2)">Nữ</button>
+  <button onclick="startGame()">Bắt đầu</button>
+</div>
+
+<div id="quiz">
+  <p id="question"></p>
+  <button onclick="answer(true)">✔</button>
+  <button onclick="answer(false)">✖</button>
 </div>
 
 <canvas id="game"></canvas>
 
-<!-- MOBILE -->
 <div id="controls">
-<div>
-<div class="btn" ontouchstart="left=true" ontouchend="left=false">◀</div>
-<div class="btn" ontouchstart="right=true" ontouchend="right=false">▶</div>
+  <div>
+    <div class="btn" ontouchstart="left=true" ontouchend="left=false"></div>
+    <div class="btn" ontouchstart="right=true" ontouchend="right=false"></div>
+  </div>
+  <div class="btn" ontouchstart="jump=true" ontouchend="jump=false"></div>
 </div>
-<div class="btn" ontouchstart="jump()">▲</div>
-</div>
-
-<!-- QUIZ -->
-<div id="quiz">
-<div id="scroll">
-<p id="question"></p>
-<button onclick="answer(true)">✔</button>
-<button onclick="answer(false)">✖</button>
-</div>
-</div>
-
-<audio id="music" src="amthanh.mp3" loop></audio>
 
 <script>
-const canvas = document.getElementById("game")
-const ctx = canvas.getContext("2d")
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-ctx.imageSmoothingEnabled = false
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-function resize(){
-canvas.width = window.innerWidth
-canvas.height = window.innerHeight
-}
-resize()
-window.addEventListener("resize",resize)
-
-/* PLAYER */
 let player = {
-x:100,
-y:300,
-vx:0,
-vy:0,
-img:null
-}
+  x:100,
+  y:300,
+  w:60,
+  h:60,
+  dx:0,
+  dy:0,
+  onGround:false,
+  direction:1
+};
 
-let gravity = 0.8
-let left=false, right=false
+let gravity = 1;
+let left=false,right=false,jump=false;
 
-/* MAP (ĐÚNG FILE CỦA BẠN) */
-const maps = [
-"thanhhoa.png",
-"thanglong.png",
-"batho.png",
-"quoctugiam.png",
-"thuathienhue.jpg",
-"dienkinhthien.png",
-"hoankiem.jpg",
-"hoian.jpg",
-"quangnam.jpg",
-"dentho.png"
-]
+let scrollX=0;
+let score=0;
 
-/* CÂU HỎI */
-const questions = [
+let charImg = new Image();
+
+let maps = [
+"thanhhoa.png","thanglong.png","batho.png",
+"quoctugiam.png","thuathienhue.jpg",
+"dienkinhthien.png","hoankiem.jpg",
+"hoian.jpg","quangnam.jpg","dentho.png"
+];
+
+let questions = [
 "Đây là Thanh Hóa?",
 "Đây là Thăng Long?",
 "Đây là Bát Thọ?",
 "Đây là Quốc Tử Giám?",
 "Đây là Huế?",
 "Đây là Điện Kính Thiên?",
-"Hồ Hoàn Kiếm?",
-"Hội An?",
-"Quảng Nam?",
-"Đền thờ?"
-]
+"Đây là Hồ Hoàn Kiếm?",
+"Đây là Hội An?",
+"Đây là Quảng Nam?",
+"Đây là Đền Thờ?"
+];
 
-let mapIndex=0
-let bg=new Image()
+let mapImg;
+let currentQuestion;
 
-/* SCORE */
-let score=0
-
-/* LOAD MAP */
-function loadMap(){
-mapIndex = Math.floor(Math.random()*maps.length)
-bg.src = "./"+maps[mapIndex]
-
-bg.onerror=()=>console.log("Lỗi ảnh:",bg.src)
-
-setTimeout(()=>{
-document.getElementById("quiz").style.display="block"
-document.getElementById("question").innerText = questions[mapIndex]
-},1500)
+function selectChar(n){
+  charImg.src = n==1 ? "nhanvat1.gif" : "nhanvat2.gif";
 }
 
-/* START */
 function startGame(){
-document.getElementById("menu").style.display="none"
+  document.getElementById("menu").style.display="none";
 
-let char = document.getElementById("char").value
+  let music = new Audio("amthanh.mp3");
+  music.loop=true;
+  music.play().catch(()=>{});
 
-player.img = new Image()
-player.img.src = char==1 ? "nhanvat1.gif" : "nhanvat2.gif"
-
-loadMap()
-
-// bật nhạc
-let played=false
-document.body.addEventListener("click",()=>{
-if(!played){
-document.getElementById("music").play()
-played=true
-}
-})
+  loadMap();
 }
 
-/* ANSWER */
+function loadMap(){
+  let i = Math.floor(Math.random()*maps.length);
+  mapImg = new Image();
+  mapImg.src = maps[i];
+  currentQuestion = questions[i];
+
+  player.x=100;
+  player.y=300;
+  scrollX=0;
+}
+
+function gameLoop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.drawImage(mapImg,-scrollX,0,canvas.width,canvas.height);
+
+  // điều khiển
+  if(left){
+    player.dx=-5;
+    player.direction=-1;
+  }
+  else if(right){
+    player.dx=5;
+    player.direction=1;
+  }
+  else player.dx=0;
+
+  if(jump && player.onGround){
+    player.dy=-15;
+    player.onGround=false;
+  }
+
+  player.dy+=gravity;
+  player.x+=player.dx;
+  player.y+=player.dy;
+
+  // nền đất
+  if(player.y>300){
+    player.y=300;
+    player.dy=0;
+    player.onGround=true;
+  }
+
+  scrollX+=player.dx;
+
+  // VẼ NHÂN VẬT (lật)
+  ctx.save();
+  ctx.translate(player.x,player.y);
+
+  if(player.direction==-1){
+    ctx.scale(-1,1);
+    ctx.drawImage(charImg,-player.w,0,player.w,player.h);
+  }else{
+    ctx.drawImage(charImg,0,0,player.w,player.h);
+  }
+
+  ctx.restore();
+
+  // PLATFORM
+  ctx.fillStyle="green";
+  ctx.fillRect(400-scrollX,250,120,20);
+  ctx.fillRect(650-scrollX,200,120,20);
+
+  // GAI
+  ctx.fillStyle="red";
+  ctx.fillRect(550-scrollX,320,50,20);
+
+  // chết
+  if(player.x > 550-scrollX && player.x < 600-scrollX && player.y>300){
+    reset();
+  }
+
+  // CUỘN GIẤY
+  let scrollObj = 900;
+  ctx.fillStyle="yellow";
+  ctx.fillRect(scrollObj-scrollX,280,40,40);
+
+  if(player.x > scrollObj-scrollX-20){
+    showQuestion();
+  }
+
+  ctx.fillStyle="white";
+  ctx.fillText("Điểm: "+score,20,20);
+
+  requestAnimationFrame(gameLoop);
+}
+
+function reset(){
+  player.x=100;
+  player.y=300;
+  scrollX=0;
+}
+
+function showQuestion(){
+  document.getElementById("quiz").style.display="block";
+  document.getElementById("question").innerText=currentQuestion;
+}
+
 function answer(correct){
-document.getElementById("quiz").style.display="none"
+  document.getElementById("quiz").style.display="none";
 
-if(correct){
-score++
-loadMap()
-}else{
-alert("Sai!")
-}
-}
-
-/* JUMP */
-function jump(){
-if(player.y>300){
-player.vy=-15
-}
+  if(correct){
+    new Audio("dung.mp3").play();
+    score++;
+    loadMap();
+  }else{
+    new Audio("sai.mp3").play();
+    reset();
+  }
 }
 
-/* GAME LOOP */
-function loop(){
-ctx.clearRect(0,0,canvas.width,canvas.height)
-
-// background
-ctx.drawImage(bg,0,0,canvas.width,canvas.height)
-
-// movement mượt
-if(left) player.vx -=0.5
-if(right) player.vx +=0.5
-player.vx *=0.9
-
-player.x += player.vx
-player.y += player.vy
-player.vy += gravity
-
-if(player.y>300){
-player.y=300
-player.vy=0
-}
-
-// draw player (KHÔNG còn viền xấu nhiều)
-if(player.img){
-ctx.drawImage(player.img,player.x,player.y,96,96)
-}
-
-// score
-ctx.fillStyle="white"
-ctx.font="20px Arial"
-ctx.fillText("Điểm: "+score,20,30)
-
-requestAnimationFrame(loop)
-}
-loop()
+gameLoop();
 </script>
 
 </body>
