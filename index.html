@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Game Lịch Sử Level 4</title>
+<title>Game Lịch Sử FINAL</title>
 
 <style>
 body{
@@ -12,13 +12,13 @@ background:black;
 overflow:hidden;
 }
 
-/* canvas căn giữa */
+/* canvas */
 canvas{
 position:absolute;
 image-rendering:pixelated;
 }
 
-/* bắt xoay ngang */
+/* xoay ngang */
 #rotate{
 position:fixed;
 width:100%;
@@ -28,14 +28,13 @@ color:white;
 display:flex;
 justify-content:center;
 align-items:center;
-font-size:24px;
-z-index:50;
+z-index:100;
 }
 
-/* mobile control */
+/* control */
 #controls{
 position:fixed;
-bottom:10px;
+bottom:0;
 width:100%;
 display:flex;
 justify-content:space-between;
@@ -54,16 +53,16 @@ border-radius:50%;
 
 <body>
 
-<div id="rotate">Xoay ngang điện thoại để chơi</div>
+<div id="rotate">Xoay ngang để chơi</div>
 
 <canvas id="game"></canvas>
 
 <div id="controls">
 <div>
-<div class="btn" id="left"></div>
-<div class="btn" id="right"></div>
+<div class="btn" id="btnLeft"></div>
+<div class="btn" id="btnRight"></div>
 </div>
-<div class="btn" id="jump"></div>
+<div class="btn" id="btnJump"></div>
 </div>
 
 <audio id="music" src="amthanh.mp3" loop></audio>
@@ -72,56 +71,46 @@ border-radius:50%;
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-/* 🔥 FIX TỈ LỆ 16:9 */
+/* FIX 16:9 */
 function resize(){
-let ratio = 16/9;
-let w = window.innerWidth;
-let h = window.innerHeight;
+let ratio=16/9;
+let w=window.innerWidth;
+let h=window.innerHeight;
 
-if(w/h > ratio){
-canvas.height = h;
-canvas.width = h * ratio;
+if(w/h>ratio){
+canvas.height=h;
+canvas.width=h*ratio;
 }else{
-canvas.width = w;
-canvas.height = w / ratio;
+canvas.width=w;
+canvas.height=w/ratio;
 }
 
-/* căn giữa */
-canvas.style.left = (w - canvas.width)/2 + "px";
-canvas.style.top = (h - canvas.height)/2 + "px";
+canvas.style.left=(w-canvas.width)/2+"px";
+canvas.style.top=(h-canvas.height)/2+"px";
 }
 resize();
-window.addEventListener("resize", resize);
+window.addEventListener("resize",resize);
 
 /* xoay ngang */
 function checkRotate(){
-if(window.innerHeight > window.innerWidth){
-document.getElementById("rotate").style.display="flex";
-}else{
-document.getElementById("rotate").style.display="none";
-}
+document.getElementById("rotate").style.display =
+(window.innerHeight>window.innerWidth)?"flex":"none";
 }
 checkRotate();
-window.addEventListener("resize", checkRotate);
+window.addEventListener("resize",checkRotate);
 
-/* LOAD */
-const playerImg = new Image();
+/* load ảnh */
+const playerImg=new Image();
 playerImg.src="nhanvat1.gif";
 
-const maps=[
-"thanhhoa.png","thanglong.png","batho.png",
-"quoctugiam.png","thuathienhue.jpg",
-"dienkinhthien.png","hoankiem.jpg",
-"hoian.jpg","quangnam.jpg","dentho.png"
-];
+const mapImg=new Image();
+mapImg.src="thanglong.png";
 
-let mapImg = new Image();
-mapImg.src = maps[Math.floor(Math.random()*maps.length)];
-
+/* kiểm tra load */
 let loaded=false;
 mapImg.onload=()=>loaded=true;
 
-/* PLAYER */
+/* player */
 let player={
 x:100,y:300,vx:0,vy:0,ground:300
 };
@@ -129,49 +118,48 @@ x:100,y:300,vx:0,vy:0,ground:300
 let gravity=0.8;
 let scrollX=0;
 
-/* CONTROL */
-let left=false,right=false,jump=false;
+/* control state */
+let control={
+left:false,
+right:false,
+jump:false
+};
 
-function hold(btn, key){
-btn.addEventListener("touchstart",()=>window[key]=true);
-btn.addEventListener("touchend",()=>window[key]=false);
+/* FIX TOUCH */
+function bind(btn,key){
+btn.addEventListener("touchstart",()=>control[key]=true);
+btn.addEventListener("touchend",()=>control[key]=false);
+
+btn.addEventListener("mousedown",()=>control[key]=true);
+btn.addEventListener("mouseup",()=>control[key]=false);
 }
 
-hold(left,"left");
-hold(right,"right");
-hold(jump,"jump");
+bind(document.getElementById("btnLeft"),"left");
+bind(document.getElementById("btnRight"),"right");
+bind(document.getElementById("btnJump"),"jump");
 
-document.getElementById("left").onmousedown=()=>left=true;
-document.getElementById("left").onmouseup=()=>left=false;
-
-document.getElementById("right").onmousedown=()=>right=true;
-document.getElementById("right").onmouseup=()=>right=false;
-
-document.getElementById("jump").onmousedown=()=>jump=true;
-document.getElementById("jump").onmouseup=()=>jump=false;
-
-/* GAME LOOP */
+/* loop */
 function loop(){
 
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
-/* FIX MÀN ĐEN */
+/* FIX màn đen */
 if(!loaded || !playerImg.complete){
 ctx.fillStyle="white";
-ctx.fillText("Đang tải...",50,50);
+ctx.fillText("Loading...",50,50);
 requestAnimationFrame(loop);
 return;
 }
 
-/* MAP */
+/* map */
 ctx.drawImage(mapImg,-scrollX,0,canvas.width,canvas.height);
 
-/* MOVE */
+/* movement */
 player.vx=0;
-if(left) player.vx=-5;
-if(right) player.vx=5;
+if(control.left) player.vx=-5;
+if(control.right) player.vx=5;
 
-if(jump && player.y>=player.ground){
+if(control.jump && player.y>=player.ground){
 player.vy=-15;
 }
 
@@ -184,21 +172,21 @@ player.y=player.ground;
 player.vy=0;
 }
 
-/* CAMERA */
+/* camera */
 scrollX+=player.vx;
 
-/* PLAYER */
+/* player */
 ctx.drawImage(playerImg,player.x,player.y,80,80);
 
-/* UI */
+/* debug text */
 ctx.fillStyle="white";
-ctx.fillText("Level 4",20,20);
+ctx.fillText("OK",20,20);
 
 requestAnimationFrame(loop);
 }
 loop();
 
-/* MUSIC */
+/* music */
 document.body.addEventListener("click",()=>{
 document.getElementById("music").play();
 },{once:true});
