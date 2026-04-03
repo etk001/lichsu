@@ -6,28 +6,25 @@
 <title>Game Lịch Sử Pixel</title>
 
 <style>
-body {
-margin: 0;
-overflow: hidden;
-background: black;
-font-family: sans-serif;
+body{
+margin:0;
+overflow:hidden;
+background:black;
+font-family:sans-serif;
 }
 
 /* Canvas */
-canvas {
-display: block;
-margin: auto;
+canvas{
+display:block;
 image-rendering: pixelated;
 }
 
-/* Menu */
-#menu {
-position: fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background: url("thongbao.png") center/cover;
+/* MENU */
+#menu{
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background:url("thongbao.png") center/cover;
 display:flex;
 flex-direction:column;
 align-items:center;
@@ -35,15 +32,15 @@ justify-content:center;
 z-index:10;
 }
 
-input, button {
+input,select,button{
 padding:10px;
 margin:5px;
 font-size:18px;
 }
 
-/* Điều khiển mobile */
-#controls {
-position: fixed;
+/* CONTROL MOBILE */
+#controls{
+position:fixed;
 bottom:20px;
 left:0;
 right:0;
@@ -52,27 +49,38 @@ justify-content:space-between;
 padding:20px;
 }
 
-.btn {
+.btn{
 width:60px;
 height:60px;
 background:rgba(255,255,255,0.3);
 border-radius:50%;
-font-size:24px;
 display:flex;
 align-items:center;
 justify-content:center;
+font-size:24px;
 }
 
-/* Popup câu hỏi */
-#quiz {
+/* QUIZ */
+#quiz{
 position:fixed;
 top:50%;
 left:50%;
 transform:translate(-50%,-50%);
-background:white;
-padding:20px;
 display:none;
 z-index:20;
+}
+
+#scroll{
+background:#f5deb3;
+padding:20px;
+border:4px solid brown;
+border-radius:10px;
+animation:roll 0.4s ease;
+}
+
+@keyframes roll{
+from{transform:scale(0)}
+to{transform:scale(1)}
 }
 </style>
 </head>
@@ -84,16 +92,15 @@ z-index:20;
 <h2>Game Lịch Sử</h2>
 <input id="name" placeholder="Nhập tên">
 <select id="char">
-<option value="0">Nam</option>
-<option value="1">Nữ</option>
+<option value="1">Nhân vật Nam</option>
+<option value="2">Nhân vật Nữ</option>
 </select>
 <button onclick="startGame()">Bắt đầu</button>
 </div>
 
-<!-- GAME -->
 <canvas id="game"></canvas>
 
-<!-- MOBILE CONTROL -->
+<!-- MOBILE -->
 <div id="controls">
 <div>
 <div class="btn" ontouchstart="left=true" ontouchend="left=false">◀</div>
@@ -104,9 +111,11 @@ z-index:20;
 
 <!-- QUIZ -->
 <div id="quiz">
+<div id="scroll">
 <p id="question"></p>
-<button onclick="answer(true)">Đúng</button>
-<button onclick="answer(false)">Sai</button>
+<button onclick="answer(true)">✔</button>
+<button onclick="answer(false)">✖</button>
+</div>
 </div>
 
 <audio id="music" src="amthanh.mp3" loop></audio>
@@ -115,9 +124,16 @@ z-index:20;
 const canvas = document.getElementById("game")
 const ctx = canvas.getContext("2d")
 
+ctx.imageSmoothingEnabled = false
+
+function resize(){
 canvas.width = window.innerWidth
 canvas.height = window.innerHeight
+}
+resize()
+window.addEventListener("resize",resize)
 
+/* PLAYER */
 let player = {
 x:100,
 y:300,
@@ -129,7 +145,7 @@ img:null
 let gravity = 0.8
 let left=false, right=false
 
-/* MAP */
+/* MAP (ĐÚNG FILE CỦA BẠN) */
 const maps = [
 "thanhhoa.png",
 "thanglong.png",
@@ -143,12 +159,9 @@ const maps = [
 "dentho.png"
 ]
 
-let mapIndex = 0
-let bg = new Image()
-
 /* CÂU HỎI */
 const questions = [
-"Đây là Thanh Hóa?", 
+"Đây là Thanh Hóa?",
 "Đây là Thăng Long?",
 "Đây là Bát Thọ?",
 "Đây là Quốc Tử Giám?",
@@ -160,24 +173,23 @@ const questions = [
 "Đền thờ?"
 ]
 
-/* FIX VIỀN TRẮNG NHÂN VẬT */
-function drawPlayer(img,x,y){
-ctx.drawImage(img,x,y,80,80)
+let mapIndex=0
+let bg=new Image()
 
-// xoá nền trắng (hack đơn giản)
-let imageData = ctx.getImageData(x,y,80,80)
-let data = imageData.data
+/* SCORE */
+let score=0
 
-for(let i=0;i<data.length;i+=4){
-let r=data[i], g=data[i+1], b=data[i+2]
+/* LOAD MAP */
+function loadMap(){
+mapIndex = Math.floor(Math.random()*maps.length)
+bg.src = "./"+maps[mapIndex]
 
-// nếu gần trắng → cho trong suốt
-if(r>240 && g>240 && b>240){
-data[i+3]=0
-}
-}
+bg.onerror=()=>console.log("Lỗi ảnh:",bg.src)
 
-ctx.putImageData(imageData,x,y)
+setTimeout(()=>{
+document.getElementById("quiz").style.display="block"
+document.getElementById("question").innerText = questions[mapIndex]
+},1500)
 }
 
 /* START */
@@ -185,60 +197,52 @@ function startGame(){
 document.getElementById("menu").style.display="none"
 
 let char = document.getElementById("char").value
+
 player.img = new Image()
-player.img.src = char==0 ? "nhanvat1.gif" : "nhanvat2.gif"
+player.img.src = char==1 ? "nhanvat1.gif" : "nhanvat2.gif"
 
 loadMap()
 
-// bật nhạc (mobile cần click)
-document.body.onclick=()=>{
+// bật nhạc
+let played=false
+document.body.addEventListener("click",()=>{
+if(!played){
 document.getElementById("music").play()
+played=true
 }
-}
-
-/* LOAD MAP */
-function loadMap(){
-mapIndex = Math.floor(Math.random()*maps.length)
-bg.src = maps[mapIndex]
-
-bg.onerror=()=>console.log("Lỗi ảnh:",bg.src)
-
-// hiện câu hỏi sau 2s
-setTimeout(()=>{
-document.getElementById("quiz").style.display="block"
-document.getElementById("question").innerText = questions[mapIndex]
-},2000)
+})
 }
 
-/* TRẢ LỜI */
+/* ANSWER */
 function answer(correct){
 document.getElementById("quiz").style.display="none"
 
 if(correct){
-alert("Đúng!")
+score++
 loadMap()
 }else{
 alert("Sai!")
 }
 }
 
-/* NHẢY */
+/* JUMP */
 function jump(){
 if(player.y>300){
-player.vy = -15
+player.vy=-15
 }
 }
 
-/* LOOP */
-function gameLoop(){
+/* GAME LOOP */
+function loop(){
 ctx.clearRect(0,0,canvas.width,canvas.height)
 
+// background
 ctx.drawImage(bg,0,0,canvas.width,canvas.height)
 
-// di chuyển mượt
-if(left) player.vx = -5
-else if(right) player.vx = 5
-else player.vx = 0
+// movement mượt
+if(left) player.vx -=0.5
+if(right) player.vx +=0.5
+player.vx *=0.9
 
 player.x += player.vx
 player.y += player.vy
@@ -249,13 +253,19 @@ player.y=300
 player.vy=0
 }
 
-// vẽ nhân vật
-if(player.img) drawPlayer(player.img,player.x,player.y)
-
-requestAnimationFrame(gameLoop)
+// draw player (KHÔNG còn viền xấu nhiều)
+if(player.img){
+ctx.drawImage(player.img,player.x,player.y,96,96)
 }
 
-gameLoop()
+// score
+ctx.fillStyle="white"
+ctx.font="20px Arial"
+ctx.fillText("Điểm: "+score,20,30)
+
+requestAnimationFrame(loop)
+}
+loop()
 </script>
 
 </body>
