@@ -262,7 +262,29 @@ function answer(correct){
   }
 }
 
-gameLoop();
+gameLoop();function gameLoop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // ❗ FIX: CHỜ ẢNH LOAD
+  if(!mapImg.complete){
+    ctx.fillStyle="white";
+    ctx.fillText("Đang tải map...",50,50);
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  if(!charImg.complete){
+    ctx.fillStyle="white";
+    ctx.fillText("Đang tải nhân vật...",50,80);
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  // VẼ MAP
+  ctx.drawImage(mapImg,-scrollX,0,canvas.width,canvas.height);
+
+  // ====== PHẦN CÒN LẠI GIỮ NGUYÊN ======
+}
 </script>
 
 </body>
