@@ -2,90 +2,69 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Game Lịch Sử</title>
-
+<title>Game Lịch Sử Pixel</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-margin:0;
-overflow:hidden;
-background:black;
-}
-
-canvas{
-display:block;
-image-rendering: pixelated;
-}
+body{margin:0;overflow:hidden;background:black;}
+canvas{image-rendering:pixelated;}
 
 #rotate{
-position:absolute;
-width:100%;
-height:100%;
-background:black;
-color:white;
-display:flex;
-justify-content:center;
-align-items:center;
-font-size:26px;
-z-index:20;
+position:absolute;width:100%;height:100%;
+background:black;color:white;
+display:flex;justify-content:center;align-items:center;
+font-size:24px;z-index:10;
 }
 
 #menu{
-position:absolute;
-width:100%;
-height:100%;
+position:absolute;width:100%;height:100%;
 background:rgba(0,0,0,0.85);
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-color:white;
-z-index:10;
-}
-
-#controls{
-position:absolute;
-bottom:0;
-width:100%;
-display:flex;
-justify-content:space-between;
-}
-
-.btn{
-width:90px;
-height:90px;
-background:rgba(255,255,255,0.25);
-border-radius:20px;
-margin:15px;
+display:flex;flex-direction:column;
+align-items:center;justify-content:center;
+color:white;z-index:5;
 }
 
 #scroll{
-position:absolute;
-top:50%;
-left:50%;
+position:absolute;top:50%;left:50%;
 transform:translate(-50%,-50%);
-background:#f5e6c8;
-padding:30px;
+background:#f5e6c8;padding:20px;
 border:6px solid #7a4f1f;
-display:none;
-font-size:20px;
-max-width:80%;
-z-index:30;
+display:none;z-index:20;
+width:80%;
+}
+
+.btnAns{
+display:block;
+margin:10px 0;
+padding:10px;
+background:#fff;
+border:none;
+width:100%;
+}
+
+#controls{
+position:absolute;bottom:0;width:100%;
+display:flex;justify-content:space-between;
+}
+
+.btn{
+width:80px;height:80px;
+background:rgba(255,255,255,0.3);
+margin:10px;border-radius:20px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="rotate">Hãy xoay ngang điện thoại</div>
+<div id="rotate">Xoay ngang điện thoại</div>
 
 <div id="menu">
 <h1>Game Lịch Sử</h1>
-<input id="name" placeholder="Tên người chơi">
+<input id="name" placeholder="Tên bạn">
 <br>
-<button onclick="setChar(1)">Nhân vật Nam</button>
-<button onclick="setChar(2)">Nhân vật Nữ</button>
+<button onclick="setChar(1)">Nam</button>
+<button onclick="setChar(2)">Nữ</button>
 <br>
 <button onclick="startGame()">Bắt đầu</button>
 </div>
@@ -103,6 +82,8 @@ z-index:30;
 </div>
 
 <audio id="bgm" loop src="amthanh.mp3"></audio>
+<audio id="correct" src="amthanh.mp3"></audio>
+<audio id="wrong" src="amthanh.mp3"></audio>
 
 <canvas id="game"></canvas>
 
@@ -111,68 +92,87 @@ z-index:30;
 const canvas=document.getElementById("game")
 const ctx=canvas.getContext("2d")
 
+/* FIX 16:9 */
 function resize(){
-canvas.width=window.innerWidth
-canvas.height=window.innerHeight
+let ratio=16/9
+let w=window.innerWidth,h=window.innerHeight
+if(w/h>ratio){
+canvas.height=h
+canvas.width=h*ratio
+}else{
+canvas.width=w
+canvas.height=w/ratio
+}
+canvas.style.left=(window.innerWidth-canvas.width)/2+"px"
+canvas.style.top=(window.innerHeight-canvas.height)/2+"px"
 }
 resize()
-window.addEventListener("resize",resize)
+window.onresize=resize
 
+/* XOAY NGANG */
 function checkRotate(){
-if(window.innerHeight>window.innerWidth){
-rotate.style.display="flex"
-}else{
-rotate.style.display="none"
-}
+rotate.style.display = (window.innerHeight>window.innerWidth)?"flex":"none"
 }
 checkRotate()
-window.addEventListener("resize",checkRotate)
+window.onresize=checkRotate
 
-let player={
-x:100,
-y:0,
-vy:0,
-speed:7,
-jump:false
-}
+/* PLAYER */
+let player={x:100,y:0,vy:0,jump:false}
+let speed=6
 
 let charImg=new Image()
 charImg.src="nhanvat1.gif"
 
-function setChar(id){
-if(id==1) charImg.src="nhanvat1.gif"
-if(id==2) charImg.src="nhanvat2.gif"
+function setChar(i){
+charImg.src=(i==1)?"nhanvat1.gif":"nhanvat2.gif"
 }
 
-const maps=[
-"thanhhoa.png",
-"thanglong.png",
-"batho.png",
-"quoctugiam.png",
-"thuathienhue.jpg",
-"dienkinhthien.png",
-"hoankiem.jpg",
-"hoian.jpg",
-"quangnam.jpg",
-"dentho.png"
+/* MAP + CÂU HỎI */
+const data=[
+{img:"thanhhoa.png",q:"Lê Lợi khởi nghĩa ở đâu?",
+a:["Thanh Hóa","Hà Nội","Huế","Đà Nẵng"],c:0},
+
+{img:"thanglong.png",q:"Kinh đô xưa?",
+a:["Huế","Thăng Long","Sài Gòn","Hội An"],c:1},
+
+{img:"batho.png",q:"Nam Quốc Sơn Hà nói về?",
+a:["Tình yêu","Chủ quyền","Nông nghiệp","Chiến tranh"],c:1},
+
+{img:"quoctugiam.png",q:"Trường ĐH đầu tiên?",
+a:["Quốc Tử Giám","Bách Khoa","Y Dược","Kinh Tế"],c:0},
+
+{img:"thuathienhue.jpg",q:"Kinh đô nhà Nguyễn?",
+a:["Hà Nội","Huế","Nam Định","Quảng Nam"],c:1},
+
+{img:"dienkinhthien.png",q:"Thuộc Hoàng thành?",
+a:["Điện Kính Thiên","Chùa Một Cột","Lăng Bác","Nhà thờ"],c:0},
+
+{img:"hoankiem.jpg",q:"Hồ gắn vua Lê Lợi?",
+a:["Hồ Tây","Hoàn Kiếm","Ba Bể","Trị An"],c:1},
+
+{img:"hoian.jpg",q:"Thương cảng cổ?",
+a:["Huế","Hội An","Hải Phòng","Cần Thơ"],c:1},
+
+{img:"quangnam.jpg",q:"Hội An thuộc?",
+a:["Quảng Nam","Huế","Đà Nẵng","Hà Nội"],c:0},
+
+{img:"dentho.png",q:"Nơi thờ vua?",
+a:["Đền","Chợ","Nhà","Trường"],c:0}
 ]
 
-let mapImg=new Image()
 let mapIndex=0
+let mapImg=new Image()
 
-function randomMap(){
-mapIndex=Math.floor(Math.random()*maps.length)
-mapImg.src=maps[mapIndex]
+function newMap(){
+mapIndex=Math.floor(Math.random()*data.length)
+mapImg.src=data[mapIndex].img
+asked=false
 }
-randomMap()
 
-let left=false
-let right=false
+newMap()
 
-/* MOBILE */
-leftBtn=document.getElementById("left")
-rightBtn=document.getElementById("right")
-jumpBtn=document.getElementById("jump")
+/* CONTROL */
+let left=false,right=false
 
 leftBtn.ontouchstart=()=>left=true
 leftBtn.ontouchend=()=>left=false
@@ -182,94 +182,103 @@ rightBtn.ontouchend=()=>right=false
 
 jumpBtn.ontouchstart=()=>{
 if(!player.jump){
-player.vy=-18
+player.vy=-15
 player.jump=true
 }
 }
 
 /* PC */
-document.addEventListener("keydown",(e)=>{
-if(e.key==="a") left=true
-if(e.key==="d") right=true
-if(e.key==="w"){
-if(!player.jump){
-player.vy=-18
+document.onkeydown=e=>{
+if(e.key=="a")left=true
+if(e.key=="d")right=true
+if(e.key=="w"&&!player.jump){
+player.vy=-15
 player.jump=true
 }
 }
-})
+document.onkeyup=e=>{
+if(e.key=="a")left=false
+if(e.key=="d")right=false
+}
 
-document.addEventListener("keyup",(e)=>{
-if(e.key==="a") left=false
-if(e.key==="d") right=false
-})
+/* GAME */
+let score=0
+let asked=false
 
 function startGame(){
 menu.style.display="none"
-document.getElementById("bgm").play()
+bgm.play()
 }
 
 function update(){
-
-if(left) player.x-=player.speed
-if(right) player.x+=player.speed
+if(left)player.x-=speed
+if(right)player.x+=speed
 
 player.y+=player.vy
 player.vy+=1
 
-let ground=canvas.height-140
-
+let ground=canvas.height-120
 if(player.y>ground){
 player.y=ground
 player.jump=false
 }
-
 }
 
 function draw(){
-
 ctx.clearRect(0,0,canvas.width,canvas.height)
-
 ctx.drawImage(mapImg,0,0,canvas.width,canvas.height)
+ctx.drawImage(charImg,player.x,player.y,80,80)
 
-ctx.drawImage(charImg,player.x,player.y,100,100)
-
-let scrollX=canvas.width-250
-let scrollY=canvas.height-150
+/* cuộn giấy */
+let sx=canvas.width*0.8
+let sy=canvas.height*0.7
 
 ctx.fillStyle="gold"
-ctx.fillRect(scrollX,scrollY,50,50)
+ctx.fillRect(sx,sy,40,40)
 
-if(
-player.x+80>scrollX &&
-player.x<scrollX+50 &&
-player.y+80>scrollY
-){
-openQuestion()
+/* va chạm */
+if(!asked &&
+player.x+60>sx &&
+player.x<sx+40 &&
+player.y+60>sy){
+openQ()
+asked=true
+}
 }
 
-}
-
-function openQuestion(){
+function openQ(){
+let d=data[mapIndex]
 scroll.style.display="block"
-scroll.innerHTML=
-"Câu hỏi lịch sử<br><br><button onclick='nextMap()'>Trả lời</button>"
+
+let html="<h3>"+d.q+"</h3>"
+d.a.forEach((ans,i)=>{
+html+=`<button class="btnAns" onclick="answer(${i})">${ans}</button>`
+})
+scroll.innerHTML=html
 }
 
-function nextMap(){
+function answer(i){
+let d=data[mapIndex]
+
+if(i==d.c){
+score++
+correct.play()
+}else{
+wrong.play()
+}
+
 scroll.style.display="none"
-randomMap()
 player.x=100
+newMap()
 }
 
-function gameLoop(){
+function loop(){
 update()
 draw()
-requestAnimationFrame(gameLoop)
+requestAnimationFrame(loop)
 }
-gameLoop()
+loop()
 
 </script>
-
 </body>
 </html>
