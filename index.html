@@ -3,38 +3,76 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Game Lịch Sử Level 5</title>
+<title>Game Lịch Sử Pixel</title>
 
 <style>
-body{margin:0;background:black;overflow:hidden;}
-canvas{position:absolute;image-rendering:pixelated;}
+html,body{
+margin:0;
+background:black;
+overflow:hidden;
+touch-action:none;
+}
 
+canvas{
+position:absolute;
+image-rendering:pixelated;
+}
+
+/* xoay ngang */
 #rotate{
-position:fixed;width:100%;height:100%;
-background:black;color:white;
-display:flex;align-items:center;justify-content:center;
+position:fixed;
+width:100%;
+height:100%;
+background:black;
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
 z-index:100;
 }
 
+/* control */
 #controls{
-position:fixed;bottom:0;width:100%;
-display:flex;justify-content:space-between;
+position:fixed;
+bottom:10px;
+width:100%;
+display:flex;
+justify-content:space-between;
 padding:20px;
+z-index:10;
 }
 
 .btn{
-width:70px;height:70px;
+width:70px;
+height:70px;
 background:rgba(255,255,255,0.3);
 border-radius:50%;
 }
+
+/* menu */
+#menu{
+position:fixed;
+width:100%;
+height:100%;
+background:black;
+color:white;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+z-index:200;
+}
+
+/* quiz */
 #quiz{
 position:fixed;
-top:50%;left:50%;
+top:50%;
+left:50%;
 transform:translate(-50%,-50%);
 background:#f5deb3;
 padding:20px;
 display:none;
-z-index:200;
+z-index:300;
 }
 </style>
 </head>
@@ -42,6 +80,14 @@ z-index:200;
 <body>
 
 <div id="rotate">Xoay ngang để chơi</div>
+
+<div id="menu">
+<h2>Game Lịch Sử</h2>
+<input id="name" placeholder="Tên người chơi"><br><br>
+<button onclick="choose(1)">Nhân vật 1</button>
+<button onclick="choose(2)">Nhân vật 2</button><br><br>
+<button onclick="start()">Bắt đầu</button>
+</div>
 
 <canvas id="game"></canvas>
 
@@ -58,13 +104,14 @@ z-index:200;
 <audio id="music" src="amthanh.mp3" loop></audio>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
 
-/* FIX 16:9 */
+/* ===== 16:9 ===== */
 function resize(){
 let ratio=16/9;
 let w=innerWidth,h=innerHeight;
+
 if(w/h>ratio){
 canvas.height=h;
 canvas.width=h*ratio;
@@ -72,29 +119,44 @@ canvas.width=h*ratio;
 canvas.width=w;
 canvas.height=w/ratio;
 }
+
 canvas.style.left=(w-canvas.width)/2+"px";
 canvas.style.top=(h-canvas.height)/2+"px";
 }
 resize();
 addEventListener("resize",resize);
 
-/* xoay */
+/* ===== xoay ===== */
 function checkRotate(){
 rotate.style.display=(innerHeight>innerWidth)?"flex":"none";
 }
 checkRotate();
 addEventListener("resize",checkRotate);
 
-/* player */
+/* ===== chọn nhân vật ===== */
+let playerImg=new Image();
+let totalFrame=6;
+let frame=0;
+let frameSpeed=0.25;
+
+function choose(n){
+playerImg.src = (n==1) ? "play1.png" : "play2.png";
+}
+
+/* ===== player ===== */
 let player={
-x:100,y:300,vx:0,vy:0,ground:300,dir:1
+x:100,y:0,
+vx:0,vy:0,
+w:70,h:70,
+onGround:false,
+dir:1
 };
 
-let gravity=0.8;
-let scrollX=0;
-let score=0;
+function ground(){
+return canvas.height-70;
+}
 
-/* control */
+/* ===== control ===== */
 let c={left:false,right:false,jump:false};
 
 function bind(id,key){
@@ -104,14 +166,12 @@ b.ontouchend=()=>c[key]=false;
 b.onmousedown=()=>c[key]=true;
 b.onmouseup=()=>c[key]=false;
 }
+
 bind("left","left");
 bind("right","right");
 bind("jump","jump");
 
-/* ảnh */
-const playerImg=new Image();
-playerImg.src="nhanvat1.gif";
-
+/* ===== map ===== */
 const maps=[
 "thanhhoa.png","thanglong.png","batho.png",
 "quoctugiam.png","thuathienhue.jpg",
@@ -120,16 +180,8 @@ const maps=[
 ];
 
 const questions=[
-{
-q:"Lê Lợi khởi nghĩa ở đâu?",
-a:["Thanh Hóa","Huế","Hà Nội","Đà Nẵng"],
-c:0
-},
-{
-q:"Kinh đô xưa?",
-a:["Huế","Thăng Long","Sài Gòn","Hội An"],
-c:1
-}
+{q:"Lê Lợi khởi nghĩa ở đâu?",a:["Thanh Hóa","Huế","HN","ĐN"],c:0},
+{q:"Kinh đô xưa?",a:["Huế","Thăng Long","SG","HN"],c:1}
 ];
 
 let mapImg=new Image();
@@ -142,10 +194,11 @@ mapImg.src=maps[i];
 current=questions[i%questions.length];
 
 player.x=100;
+player.y=0;
 scrollX=0;
 }
 
-/* quiz */
+/* ===== quiz ===== */
 function showQuiz(){
 quiz.style.display="block";
 quiz.innerHTML="<h3>"+current.q+"</h3>";
@@ -167,18 +220,54 @@ reset();
 }
 }
 
-/* reset */
+/* ===== score ===== */
+let score=0;
+
+/* ===== reset ===== */
 function reset(){
 player.x=100;
-player.y=300;
+player.y=0;
 scrollX=0;
 }
 
-/* loop */
+/* ===== platform ===== */
+let platforms=[
+{x:400,y:300,w:120,h:20},
+{x:700,y:250,w:120,h:20}
+];
+
+/* ===== game ===== */
+let gravity=0.8;
+let scrollX=0;
+
+function drawPlayer(){
+
+let fw = playerImg.width / totalFrame;
+
+if(player.vx!=0){
+frame+=frameSpeed;
+if(frame>=totalFrame) frame=0;
+}else{
+frame=0;
+}
+
+ctx.save();
+ctx.translate(player.x,player.y);
+
+if(player.dir==-1){
+ctx.scale(-1,1);
+ctx.drawImage(playerImg,Math.floor(frame)*fw,0,fw,playerImg.height,-player.w,0,player.w,player.h);
+}else{
+ctx.drawImage(playerImg,Math.floor(frame)*fw,0,fw,playerImg.height,0,0,player.w,player.h);
+}
+
+ctx.restore();
+}
+
 function loop(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
-if(!mapImg.complete){
+if(!mapImg.complete || !playerImg.complete){
 ctx.fillStyle="white";
 ctx.fillText("Loading...",50,50);
 requestAnimationFrame(loop);
@@ -188,58 +277,64 @@ return;
 /* map */
 ctx.drawImage(mapImg,-scrollX,0,canvas.width,canvas.height);
 
-/* movement */
+/* move */
 player.vx=0;
 if(c.left){player.vx=-5;player.dir=-1;}
 if(c.right){player.vx=5;player.dir=1;}
 
-if(c.jump && player.y>=player.ground){
+if(c.jump && player.onGround){
 player.vy=-15;
+player.onGround=false;
 }
 
 player.vy+=gravity;
-player.y+=player.vy;
 player.x+=player.vx;
+player.y+=player.vy;
 
-if(player.y>player.ground){
-player.y=player.ground;
+/* ground */
+if(player.y+player.h>=ground()){
+player.y=ground()-player.h;
 player.vy=0;
+player.onGround=true;
 }
+
+/* platform */
+platforms.forEach(p=>{
+let px=p.x-scrollX;
+
+if(
+player.x<px+p.w &&
+player.x+player.w>px &&
+player.y+player.h>p.y &&
+player.y+player.h<p.y+20 &&
+player.vy>=0
+){
+player.y=p.y-player.h;
+player.vy=0;
+player.onGround=true;
+}
+});
 
 /* camera */
 scrollX+=player.vx;
 
-/* platform */
+/* draw platform */
 ctx.fillStyle="green";
-ctx.fillRect(400-scrollX,250,120,20);
-ctx.fillRect(700-scrollX,200,120,20);
+platforms.forEach(p=>{
+ctx.fillRect(p.x-scrollX,p.y,p.w,p.h);
+});
 
-/* spike */
-ctx.fillStyle="red";
-ctx.fillRect(550-scrollX,320,50,20);
-if(player.x>550-scrollX && player.x<600-scrollX && player.y>300){
-reset();
-}
-
-/* scroll object */
+/* scroll */
 let s=900;
 ctx.fillStyle="yellow";
-ctx.fillRect(s-scrollX,280,40,40);
+ctx.fillRect(s-scrollX,ground()-40,40,40);
 
-if(player.x> s-scrollX-20){
+if(player.x > s-scrollX-20){
 showQuiz();
 }
 
-/* player draw */
-ctx.save();
-ctx.translate(player.x,player.y);
-if(player.dir==-1){
-ctx.scale(-1,1);
-ctx.drawImage(playerImg,-80,0,80,80);
-}else{
-ctx.drawImage(playerImg,0,0,80,80);
-}
-ctx.restore();
+/* player */
+drawPlayer();
 
 /* UI */
 ctx.fillStyle="white";
@@ -247,14 +342,13 @@ ctx.fillText("Điểm: "+score,20,20);
 
 requestAnimationFrame(loop);
 }
-loop();
 
-/* music */
-document.body.addEventListener("click",()=>{
-music.play();
-},{once:true});
-
+function start(){
+menu.style.display="none";
+music.play().catch(()=>{});
 loadMap();
+loop();
+}
 </script>
 
 </body>
