@@ -12,7 +12,7 @@ background:black;
 touch-action:none;
 }
 
-/* canvas full */
+/* canvas */
 canvas{
 position:absolute;
 width:100vw;
@@ -39,11 +39,10 @@ position:fixed;
 width:100%;
 height:100%;
 background:url('manhinhchinh.png') center/cover no-repeat;
-background-size:cover;
-z-index:200;
 display:flex;
 flex-direction:column;
 justify-content:flex-end;
+z-index:200;
 }
 
 /* chọn nhân vật */
@@ -60,7 +59,7 @@ border:3px solid white;
 flex-shrink:0;
 }
 
-/* ===== NÚT MOBILE ===== */
+/* control */
 #controls{
 position:fixed;
 bottom:20px;
@@ -78,7 +77,6 @@ background:rgba(255,255,255,0.3);
 border-radius:50%;
 }
 
-/* nhóm trái */
 #leftGroup{
 display:flex;
 gap:10px;
@@ -97,7 +95,6 @@ gap:10px;
 
 <canvas id="game"></canvas>
 
-<!-- ===== CONTROL MOBILE ===== -->
 <div id="controls">
 <div id="leftGroup">
 <div class="btn" id="left"></div>
@@ -129,11 +126,8 @@ addEventListener("resize",checkRotate);
 
 /* ===== NHÂN VẬT ===== */
 let playerImg=new Image();
-let totalFrame=4;
-let frame=0;
 let selected=1;
 
-/* tạo 10 nhân vật */
 for(let i=1;i<=10;i++){
 let img=document.createElement("img");
 img.src="play"+i+".png";
@@ -153,28 +147,30 @@ dir:1
 
 /* ===== MAP ===== */
 let mapImg=new Image();
+let checkpoint=800;
 
 function loadMap(){
 let i=Math.floor(Math.random()*10)+1;
 mapImg.src="map"+i+".png";
-checkpoint=600+Math.random()*400;
+checkpoint=500+Math.random()*500;
 }
 
 /* ===== TRỤC ===== */
 let scrollImg=new Image();
 scrollImg.src="truc.png";
-let checkpoint=800;
 
 /* ===== PLATFORM ===== */
 let platforms=[];
 function createPlatforms(){
 platforms=[];
 let x=200;
+
 for(let i=0;i<8;i++){
 platforms.push({
 x:x,
 y:Math.random()*200+200,
-w:120,h:20
+w:120,
+h:20
 });
 x+=150;
 }
@@ -209,13 +205,17 @@ return canvas.height-50;
 function loop(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
-/* ===== MAP FIT CHUẨN ===== */
-let ratio = mapImg.width / mapImg.height;
-let mapW = canvas.height * ratio;
+/* nền đen fix viền */
+ctx.fillStyle="#000";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+/* map fit chuẩn */
+let ratio=mapImg.width/mapImg.height;
+let mapW=canvas.height*ratio;
 
 ctx.drawImage(mapImg,-scrollX,0,mapW,canvas.height);
 
-/* ===== MOVE ===== */
+/* MOVE */
 player.vx=0;
 if(c.left){player.vx=-5;player.dir=-1;}
 if(c.right){player.vx=5;player.dir=1;}
@@ -261,24 +261,16 @@ platforms.forEach(p=>{
 ctx.fillRect(p.x-scrollX,p.y,p.w,p.h);
 });
 
-/* trục */
+/* trục trên cao */
 ctx.drawImage(scrollImg,checkpoint-scrollX,150,60,60);
 
-/* player */
-let fw=playerImg.width/totalFrame;
-frame+=0.2;
-if(frame>=totalFrame) frame=0;
-
+/* player (ẢNH TĨNH) */
 ctx.save();
 if(player.dir==-1){
 ctx.scale(-1,1);
-ctx.drawImage(playerImg,
-Math.floor(frame)*fw,0,fw,playerImg.height,
--player.x-player.w,player.y,player.w,player.h);
+ctx.drawImage(playerImg,-player.x-player.w,player.y,player.w,player.h);
 }else{
-ctx.drawImage(playerImg,
-Math.floor(frame)*fw,0,fw,playerImg.height,
-player.x,player.y,player.w,player.h);
+ctx.drawImage(playerImg,player.x,player.y,player.w,player.h);
 }
 ctx.restore();
 
