@@ -9,8 +9,8 @@ html,body{
 margin:0;
 overflow:hidden;
 background:black;
-touch-action:none;
 font-family:sans-serif;
+touch-action:none;
 }
 
 canvas{
@@ -20,7 +20,7 @@ height:100vh;
 image-rendering:pixelated;
 }
 
-/* menu */
+/* MENU */
 #menu{
 position:fixed;
 width:100%;
@@ -29,7 +29,7 @@ background:url('manhinhchinh.png') center/cover;
 display:flex;
 flex-direction:column;
 justify-content:flex-end;
-z-index:200;
+z-index:100;
 }
 
 #chars{
@@ -44,34 +44,51 @@ margin:10px;
 border:3px solid white;
 }
 
-/* control */
-#controls{
+/* JOYSTICK */
+#joystick{
 position:fixed;
-bottom:20px;
-width:100%;
-display:flex;
-justify-content:space-between;
-padding:0 20px;
-z-index:50;
-}
-
-.btn{
-width:70px;
-height:70px;
-background:rgba(255,255,255,0.3);
+bottom:30px;
+left:30px;
+width:120px;
+height:120px;
+background:rgba(255,255,255,0.1);
 border-radius:50%;
 }
 
-/* quiz */
+#stick{
+width:60px;
+height:60px;
+background:rgba(255,255,255,0.4);
+border-radius:50%;
+position:absolute;
+left:30px;
+top:30px;
+}
+
+/* BUTTON */
+#jump,#dash{
+position:fixed;
+right:30px;
+width:70px;
+height:70px;
+border-radius:50%;
+background:rgba(255,255,255,0.3);
+}
+
+#jump{ bottom:120px; }
+#dash{ bottom:30px; }
+
+/* QUIZ */
 #quiz{
 position:fixed;
 top:50%;
 left:50%;
 transform:translate(-50%,-50%);
-background:#f5deb3;
+background:#fff8dc;
 padding:20px;
+border-radius:15px;
 display:none;
-z-index:500;
+z-index:200;
 }
 </style>
 </head>
@@ -79,21 +96,16 @@ z-index:500;
 <body>
 
 <div id="menu">
-<input id="playerName" placeholder="Nhập tên" style="margin:10px">
+<input id="playerName" placeholder="Nhập tên">
 <div id="chars"></div>
 <button onclick="start()">Bắt đầu</button>
 </div>
 
 <canvas id="game"></canvas>
 
-<div id="controls">
-<div>
-<div class="btn" id="left"></div>
-<div class="btn" id="right"></div>
-<div class="btn" id="dash"></div>
-</div>
-<div class="btn" id="jump"></div>
-</div>
+<div id="joystick"><div id="stick"></div></div>
+<div id="jump"></div>
+<div id="dash"></div>
 
 <div id="quiz"></div>
 
@@ -103,7 +115,6 @@ z-index:500;
 const canvas=game;
 const ctx=canvas.getContext("2d");
 
-/* resize */
 function resize(){
 canvas.width=innerWidth;
 canvas.height=innerHeight;
@@ -111,19 +122,13 @@ canvas.height=innerHeight;
 resize();
 onresize=resize;
 
-/* player */
-let player={
-x:100,y:0,
-vx:0,vy:0,
-w:60,h:60,
-onGround:false,
-dir:1
-};
-
+/* PLAYER */
+let player={x:100,y:0,vx:0,vy:0,w:60,h:60,onGround:false,dir:1};
 let playerImg=new Image();
 let selected=1;
+let level=1;
 
-/* tạo nhân vật */
+/* CHỌN NHÂN VẬT */
 for(let i=1;i<=10;i++){
 let img=document.createElement("img");
 img.src="play"+i+".png";
@@ -132,61 +137,80 @@ img.onclick=()=>selected=i;
 chars.appendChild(img);
 }
 
-/* map */
+/* JOYSTICK */
+let joyX=0;
+
+joystick.ontouchmove=e=>{
+let t=e.touches[0];
+let r=joystick.getBoundingClientRect();
+let x=t.clientX-r.left-60;
+joyX=Math.max(-1,Math.min(1,x/40));
+stick.style.left=(30+joyX*30)+"px";
+};
+
+joystick.ontouchend=()=>{
+joyX=0;
+stick.style.left="30px";
+};
+
+/* CONTROL */
+let jumpBtn=jump;
+let dashBtn=dash;
+
+let jumping=false,dashing=false;
+
+jumpBtn.ontouchstart=()=>jumping=true;
+jumpBtn.ontouchend=()=>jumping=false;
+
+dashBtn.ontouchstart=()=>dashing=true;
+dashBtn.ontouchend=()=>dashing=false;
+
+/* MAP */
 let mapImg=new Image();
 let scrollImg=new Image();
 scrollImg.src="truc.png";
-
 let scrollX=0;
 
-/* câu hỏi */
+/* QUESTIONS */
 let questions=[
-{q:"Thăng Long là?",a:["Hà Nội","Huế","Đà Nẵng","Cần Thơ"],c:0},
+{q:"Thăng Long là gì?",a:["Hà Nội","Huế","Đà Nẵng","Cần Thơ"],c:0},
 {q:"Lê Lợi ở đâu?",a:["Thanh Hóa","Huế","HN","SG"],c:0}
 ];
-
 let currentQ;
 
-/* control */
-let c={left:false,right:false,jump:false,dash:false};
-
-function bind(id,key){
-let b=document.getElementById(id);
-b.ontouchstart=()=>c[key]=true;
-b.ontouchend=()=>c[key]=false;
-}
-bind("left","left");
-bind("right","right");
-bind("jump","jump");
-bind("dash","dash");
-
-/* physics */
-let gravity=0.7;
-
-function ground(){
-return canvas.height-50;
-}
-
-/* parkour */
+/* PLATFORM */
 let platforms=[];
 
 function createPlatforms(){
-platforms=[
-{x:200,y:ground()-80,w:120,h:20},
-{x:350,y:ground()-150,w:120,h:20},
-{x:500,y:ground()-100,w:120,h:20},
-{x:650,y:ground()-180,w:120,h:20},
-{x:800,y:ground()-120,w:120,h:20}
-];
+platforms=[];
+let x=200,y=canvas.height-100;
+
+for(let i=0;i<6+level;i++){
+y-=50+Math.random()*level*10;
+if(y<100)y=100;
+
+platforms.push({x:x,y:y,w:120,h:20});
+x+=140+level*20;
+}
 }
 
-/* trục */
-function getScroll(){
-let last=platforms[platforms.length-1];
-return {x:last.x,y:last.y-70};
+/* LOAD MAP */
+function loadMap(){
+let i=Math.floor(Math.random()*10)+1;
+mapImg.src="map"+i+".png";
+currentQ=questions[Math.floor(Math.random()*questions.length)];
+createPlatforms();
+reset();
 }
 
-/* quiz */
+/* RESET */
+function reset(){
+player.x=100;
+player.y=0;
+scrollX=0;
+}
+
+/* QUIZ */
 function showQuiz(){
 quiz.style.display="block";
 quiz.innerHTML="<h3>"+currentQ.q+"</h3>";
@@ -201,6 +225,7 @@ quiz.style.display="none";
 
 if(i==currentQ.c){
 new Audio("dung.mp3").play();
+level++;
 loadMap();
 }else{
 new Audio("sai.mp3").play();
@@ -208,28 +233,11 @@ reset();
 }
 }
 
-/* map */
-function loadMap(){
-let i=Math.floor(Math.random()*10)+1;
-mapImg.src="map"+i+".png";
-
-currentQ=questions[Math.floor(Math.random()*questions.length)];
-createPlatforms();
-reset();
-}
-
-/* reset */
-function reset(){
-player.x=100;
-player.y=0;
-scrollX=0;
-}
-
-/* loop */
+/* LOOP */
 function loop(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
-/* map lặp */
+/* MAP LOOP */
 if(mapImg.width){
 let ratio=mapImg.width/mapImg.height;
 let mapW=canvas.height*ratio;
@@ -239,37 +247,36 @@ ctx.drawImage(mapImg,(i*mapW)-(scrollX%mapW),0,mapW,canvas.height);
 }
 }
 
-/* move */
-player.vx=0;
+/* MOVE */
+player.vx=joyX*6;
+if(dashing)player.vx*=2;
 
-if(c.left){player.vx=-5;player.dir=-1;}
-if(c.right){player.vx=5;player.dir=1;}
-if(c.dash){player.vx*=2;}
+if(joyX<0)player.dir=-1;
+if(joyX>0)player.dir=1;
 
-if(c.jump && player.onGround){
-player.vy=-15;
+if(jumping && player.onGround){
+player.vy=-16;
 player.onGround=false;
 new Audio("nhay.mp3").play();
 }
 
-/* gravity */
-player.vy+=gravity;
+player.vy+=0.7;
 player.x+=player.vx;
 player.y+=player.vy;
 
-/* chết */
+/* FALL DIE */
 if(player.y>canvas.height){
 reset();
 }
 
-/* ground */
-if(player.y+player.h>=ground()){
-player.y=ground()-player.h;
+/* GROUND */
+if(player.y+player.h>=canvas.height-50){
+player.y=canvas.height-50-player.h;
 player.vy=0;
 player.onGround=true;
 }
 
-/* platform + bám mép */
+/* PLATFORM + LEO */
 platforms.forEach(p=>{
 let px=p.x-scrollX;
 
@@ -283,35 +290,41 @@ player.vy=0;
 player.onGround=true;
 }
 
-/* bám mép */
-if(
-player.x+player.w>px &&
+/* leo mép */
+if(player.x+player.w>px &&
 player.x<px+10 &&
 player.y+player.h>p.y-20 &&
-player.y<p.y
-){
+player.y<p.y){
 player.y=p.y-player.h;
 }
 });
 
-/* camera */
+/* CAMERA */
 scrollX+=player.vx;
 
-/* draw platform */
+/* PLATFORM */
 ctx.fillStyle="green";
 platforms.forEach(p=>{
 ctx.fillRect(p.x-scrollX,p.y,p.w,p.h);
 });
 
-/* trục */
-let s=getScroll();
-ctx.drawImage(scrollImg,s.x-scrollX,s.y,60,60);
+/* TRỤC */
+let last=platforms[platforms.length-1];
+let sx=last.x, sy=last.y-80;
 
-if(player.x>s.x-scrollX-20){
+ctx.shadowColor="yellow";
+ctx.shadowBlur=20;
+ctx.drawImage(scrollImg,sx-scrollX,sy,60,60);
+ctx.shadowBlur=0;
+
+/* CHẠM TRỤC */
+if(player.x+player.w>sx-scrollX &&
+player.x<sx-scrollX+60 &&
+player.y+player.h>sy){
 showQuiz();
 }
 
-/* player */
+/* PLAYER */
 ctx.save();
 if(player.dir==-1){
 ctx.scale(-1,1);
@@ -321,10 +334,15 @@ ctx.drawImage(playerImg,player.x,player.y,player.w,player.h);
 }
 ctx.restore();
 
+/* HUD */
+ctx.fillStyle="white";
+ctx.fillText("Tên: "+playerName.value,20,30);
+ctx.fillText("Level: "+level,20,50);
+
 requestAnimationFrame(loop);
 }
 
-/* start */
+/* START */
 function start(){
 playerImg.src="play"+selected+".png";
 menu.style.display="none";
