@@ -12,7 +12,7 @@ background:black;
 touch-action:none;
 }
 
-/* canvas */
+/* canvas full */
 canvas{
 position:absolute;
 width:100vw;
@@ -20,7 +20,7 @@ height:100vh;
 image-rendering:pixelated;
 }
 
-/* xoay ngang */
+/* xoay */
 #rotate{
 position:fixed;
 width:100%;
@@ -38,7 +38,7 @@ z-index:100;
 position:fixed;
 width:100%;
 height:100%;
-background:url('manhinhchinh.png') center/cover no-repeat;
+background:url('manhinhchinh.png') center/cover;
 display:flex;
 flex-direction:column;
 justify-content:flex-end;
@@ -147,33 +147,41 @@ dir:1
 
 /* ===== MAP ===== */
 let mapImg=new Image();
-let checkpoint=800;
+let mapW=0;
 
 function loadMap(){
 let i=Math.floor(Math.random()*10)+1;
 mapImg.src="map"+i+".png";
-checkpoint=500+Math.random()*500;
 }
 
 /* ===== TRỤC ===== */
 let scrollImg=new Image();
 scrollImg.src="truc.png";
 
-/* ===== PLATFORM ===== */
+/* ===== PLATFORM PARKOUR (CHUẨN) ===== */
 let platforms=[];
+
 function createPlatforms(){
 platforms=[];
-let x=200;
 
-for(let i=0;i<8;i++){
-platforms.push({
-x:x,
-y:Math.random()*200+200,
-w:120,
-h:20
-});
-x+=150;
+/* tạo đường đi dạng bậc thang (NHẢY ĐƯỢC) */
+let baseY = ground()-80;
+
+platforms = [
+{x:200,y:baseY,w:120,h:20},
+{x:350,y:baseY-80,w:120,h:20},
+{x:500,y:baseY-40,w:120,h:20},
+{x:650,y:baseY-120,w:120,h:20},
+{x:800,y:baseY-60,w:120,h:20},
+{x:950,y:baseY-140,w:120,h:20},
+{x:1100,y:baseY-80,w:120,h:20}
+];
 }
+
+/* ===== TRỤC ĐẶT CUỐI ===== */
+function getScrollPos(){
+let last = platforms[platforms.length-1];
+return {x:last.x, y:last.y-80};
 }
 
 /* ===== CONTROL ===== */
@@ -194,7 +202,7 @@ bind("right","right");
 bind("jump","jump");
 
 /* ===== GAME ===== */
-let gravity=0.8;
+let gravity=0.7;
 let scrollX=0;
 
 function ground(){
@@ -205,23 +213,29 @@ return canvas.height-50;
 function loop(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
-/* nền đen fix viền */
-ctx.fillStyle="#000";
-ctx.fillRect(0,0,canvas.width,canvas.height);
+/* ===== MAP LẶP KHÔNG BAO GIỜ ĐEN ===== */
+if(mapImg.width){
+let ratio = mapImg.width/mapImg.height;
+mapW = canvas.height*ratio;
 
-/* map fit chuẩn */
-let ratio=mapImg.width/mapImg.height;
-let mapW=canvas.height*ratio;
+for(let i=-1;i<3;i++){
+ctx.drawImage(
+mapImg,
+(i*mapW)-(scrollX%mapW),
+0,
+mapW,
+canvas.height
+);
+}
+}
 
-ctx.drawImage(mapImg,-scrollX,0,mapW,canvas.height);
-
-/* MOVE */
+/* ===== MOVE ===== */
 player.vx=0;
 if(c.left){player.vx=-5;player.dir=-1;}
 if(c.right){player.vx=5;player.dir=1;}
 
 if(c.jump && player.onGround){
-player.vy=-14;
+player.vy=-16;
 player.onGround=false;
 new Audio("nhay.mp3").play();
 }
@@ -230,14 +244,14 @@ player.vy+=gravity;
 player.x+=player.vx;
 player.y+=player.vy;
 
-/* ground */
+/* ===== GROUND ===== */
 if(player.y+player.h>=ground()){
 player.y=ground()-player.h;
 player.vy=0;
 player.onGround=true;
 }
 
-/* platform */
+/* ===== PLATFORM ===== */
 platforms.forEach(p=>{
 let px=p.x-scrollX;
 
@@ -252,19 +266,20 @@ player.onGround=true;
 }
 });
 
-/* camera */
+/* ===== CAMERA ===== */
 scrollX+=player.vx;
 
-/* draw platform */
+/* ===== DRAW PLATFORM ===== */
 ctx.fillStyle="green";
 platforms.forEach(p=>{
 ctx.fillRect(p.x-scrollX,p.y,p.w,p.h);
 });
 
-/* trục trên cao */
-ctx.drawImage(scrollImg,checkpoint-scrollX,150,60,60);
+/* ===== TRỤC ===== */
+let sp=getScrollPos();
+ctx.drawImage(scrollImg,sp.x-scrollX,sp.y,60,60);
 
-/* player (ẢNH TĨNH) */
+/* ===== PLAYER ===== */
 ctx.save();
 if(player.dir==-1){
 ctx.scale(-1,1);
