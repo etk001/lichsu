@@ -10,27 +10,14 @@ margin:0;
 overflow:hidden;
 background:black;
 touch-action:none;
+font-family:sans-serif;
 }
 
-/* canvas full */
 canvas{
 position:absolute;
 width:100vw;
 height:100vh;
 image-rendering:pixelated;
-}
-
-/* xoay */
-#rotate{
-position:fixed;
-width:100%;
-height:100%;
-background:black;
-color:white;
-display:flex;
-justify-content:center;
-align-items:center;
-z-index:100;
 }
 
 /* menu */
@@ -45,7 +32,6 @@ justify-content:flex-end;
 z-index:200;
 }
 
-/* chọn nhân vật */
 #chars{
 display:flex;
 overflow-x:auto;
@@ -56,7 +42,6 @@ padding:20px;
 width:80px;
 margin:10px;
 border:3px solid white;
-flex-shrink:0;
 }
 
 /* control */
@@ -77,18 +62,24 @@ background:rgba(255,255,255,0.3);
 border-radius:50%;
 }
 
-#leftGroup{
-display:flex;
-gap:10px;
+/* quiz */
+#quiz{
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:#f5deb3;
+padding:20px;
+display:none;
+z-index:500;
 }
 </style>
 </head>
 
 <body>
 
-<div id="rotate">Xoay ngang để chơi</div>
-
 <div id="menu">
+<input id="playerName" placeholder="Nhập tên" style="margin:10px">
 <div id="chars"></div>
 <button onclick="start()">Bắt đầu</button>
 </div>
@@ -96,47 +87,31 @@ gap:10px;
 <canvas id="game"></canvas>
 
 <div id="controls">
-<div id="leftGroup">
+<div>
 <div class="btn" id="left"></div>
 <div class="btn" id="right"></div>
+<div class="btn" id="dash"></div>
 </div>
 <div class="btn" id="jump"></div>
 </div>
 
+<div id="quiz"></div>
+
 <audio id="music" src="amthanh.mp3" loop></audio>
 
 <script>
-const canvas=document.getElementById("game");
+const canvas=game;
 const ctx=canvas.getContext("2d");
 
-/* ===== FULL MOBILE ===== */
+/* resize */
 function resize(){
 canvas.width=innerWidth;
 canvas.height=innerHeight;
 }
 resize();
-addEventListener("resize",resize);
+onresize=resize;
 
-/* ===== XOAY ===== */
-function checkRotate(){
-rotate.style.display=(innerHeight>innerWidth)?"flex":"none";
-}
-checkRotate();
-addEventListener("resize",checkRotate);
-
-/* ===== NHÂN VẬT ===== */
-let playerImg=new Image();
-let selected=1;
-
-for(let i=1;i<=10;i++){
-let img=document.createElement("img");
-img.src="play"+i+".png";
-img.className="char";
-img.onclick=()=>{selected=i;};
-chars.appendChild(img);
-}
-
-/* ===== PLAYER ===== */
+/* player */
 let player={
 x:100,y:0,
 vx:0,vy:0,
@@ -145,141 +120,198 @@ onGround:false,
 dir:1
 };
 
-/* ===== MAP ===== */
-let mapImg=new Image();
-let mapW=0;
+let playerImg=new Image();
+let selected=1;
 
-function loadMap(){
-let i=Math.floor(Math.random()*10)+1;
-mapImg.src="map"+i+".png";
+/* tạo nhân vật */
+for(let i=1;i<=10;i++){
+let img=document.createElement("img");
+img.src="play"+i+".png";
+img.className="char";
+img.onclick=()=>selected=i;
+chars.appendChild(img);
 }
 
-/* ===== TRỤC ===== */
+/* map */
+let mapImg=new Image();
 let scrollImg=new Image();
 scrollImg.src="truc.png";
 
-/* ===== PLATFORM PARKOUR (CHUẨN) ===== */
-let platforms=[];
+let scrollX=0;
 
-function createPlatforms(){
-platforms=[];
-
-/* tạo đường đi dạng bậc thang (NHẢY ĐƯỢC) */
-let baseY = ground()-80;
-
-platforms = [
-{x:200,y:baseY,w:120,h:20},
-{x:350,y:baseY-80,w:120,h:20},
-{x:500,y:baseY-40,w:120,h:20},
-{x:650,y:baseY-120,w:120,h:20},
-{x:800,y:baseY-60,w:120,h:20},
-{x:950,y:baseY-140,w:120,h:20},
-{x:1100,y:baseY-80,w:120,h:20}
+/* câu hỏi */
+let questions=[
+{q:"Thăng Long là?",a:["Hà Nội","Huế","Đà Nẵng","Cần Thơ"],c:0},
+{q:"Lê Lợi ở đâu?",a:["Thanh Hóa","Huế","HN","SG"],c:0}
 ];
-}
 
-/* ===== TRỤC ĐẶT CUỐI ===== */
-function getScrollPos(){
-let last = platforms[platforms.length-1];
-return {x:last.x, y:last.y-80};
-}
+let currentQ;
 
-/* ===== CONTROL ===== */
-let c={left:false,right:false,jump:false};
+/* control */
+let c={left:false,right:false,jump:false,dash:false};
 
 function bind(id,key){
 let b=document.getElementById(id);
-
-b.ontouchstart=(e)=>{e.preventDefault();c[key]=true;}
-b.ontouchend=(e)=>{e.preventDefault();c[key]=false;}
-
-b.onmousedown=()=>c[key]=true;
-b.onmouseup=()=>c[key]=false;
+b.ontouchstart=()=>c[key]=true;
+b.ontouchend=()=>c[key]=false;
 }
-
 bind("left","left");
 bind("right","right");
 bind("jump","jump");
+bind("dash","dash");
 
-/* ===== GAME ===== */
+/* physics */
 let gravity=0.7;
-let scrollX=0;
 
 function ground(){
 return canvas.height-50;
 }
 
-/* ===== LOOP ===== */
+/* parkour */
+let platforms=[];
+
+function createPlatforms(){
+platforms=[
+{x:200,y:ground()-80,w:120,h:20},
+{x:350,y:ground()-150,w:120,h:20},
+{x:500,y:ground()-100,w:120,h:20},
+{x:650,y:ground()-180,w:120,h:20},
+{x:800,y:ground()-120,w:120,h:20}
+];
+}
+
+/* trục */
+function getScroll(){
+let last=platforms[platforms.length-1];
+return {x:last.x,y:last.y-70};
+}
+
+/* quiz */
+function showQuiz(){
+quiz.style.display="block";
+quiz.innerHTML="<h3>"+currentQ.q+"</h3>";
+
+currentQ.a.forEach((ans,i)=>{
+quiz.innerHTML+=`<button onclick="answer(${i})">${ans}</button><br>`;
+});
+}
+
+function answer(i){
+quiz.style.display="none";
+
+if(i==currentQ.c){
+new Audio("dung.mp3").play();
+loadMap();
+}else{
+new Audio("sai.mp3").play();
+reset();
+}
+}
+
+/* map */
+function loadMap(){
+let i=Math.floor(Math.random()*10)+1;
+mapImg.src="map"+i+".png";
+
+currentQ=questions[Math.floor(Math.random()*questions.length)];
+createPlatforms();
+reset();
+}
+
+/* reset */
+function reset(){
+player.x=100;
+player.y=0;
+scrollX=0;
+}
+
+/* loop */
 function loop(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
-/* ===== MAP LẶP KHÔNG BAO GIỜ ĐEN ===== */
+/* map lặp */
 if(mapImg.width){
-let ratio = mapImg.width/mapImg.height;
-mapW = canvas.height*ratio;
+let ratio=mapImg.width/mapImg.height;
+let mapW=canvas.height*ratio;
 
 for(let i=-1;i<3;i++){
-ctx.drawImage(
-mapImg,
-(i*mapW)-(scrollX%mapW),
-0,
-mapW,
-canvas.height
-);
+ctx.drawImage(mapImg,(i*mapW)-(scrollX%mapW),0,mapW,canvas.height);
 }
 }
 
-/* ===== MOVE ===== */
+/* move */
 player.vx=0;
+
 if(c.left){player.vx=-5;player.dir=-1;}
 if(c.right){player.vx=5;player.dir=1;}
+if(c.dash){player.vx*=2;}
 
 if(c.jump && player.onGround){
-player.vy=-16;
+player.vy=-15;
 player.onGround=false;
 new Audio("nhay.mp3").play();
 }
 
+/* gravity */
 player.vy+=gravity;
 player.x+=player.vx;
 player.y+=player.vy;
 
-/* ===== GROUND ===== */
+/* chết */
+if(player.y>canvas.height){
+reset();
+}
+
+/* ground */
 if(player.y+player.h>=ground()){
 player.y=ground()-player.h;
 player.vy=0;
 player.onGround=true;
 }
 
-/* ===== PLATFORM ===== */
+/* platform + bám mép */
 platforms.forEach(p=>{
 let px=p.x-scrollX;
 
 if(player.x+player.w>px &&
 player.x<px+p.w &&
 player.y+player.h>p.y &&
-player.y+player.h<p.y+25 &&
+player.y+player.h<p.y+30 &&
 player.vy>=0){
 player.y=p.y-player.h;
 player.vy=0;
 player.onGround=true;
 }
+
+/* bám mép */
+if(
+player.x+player.w>px &&
+player.x<px+10 &&
+player.y+player.h>p.y-20 &&
+player.y<p.y
+){
+player.y=p.y-player.h;
+}
 });
 
-/* ===== CAMERA ===== */
+/* camera */
 scrollX+=player.vx;
 
-/* ===== DRAW PLATFORM ===== */
+/* draw platform */
 ctx.fillStyle="green";
 platforms.forEach(p=>{
 ctx.fillRect(p.x-scrollX,p.y,p.w,p.h);
 });
 
-/* ===== TRỤC ===== */
-let sp=getScrollPos();
-ctx.drawImage(scrollImg,sp.x-scrollX,sp.y,60,60);
+/* trục */
+let s=getScroll();
+ctx.drawImage(scrollImg,s.x-scrollX,s.y,60,60);
 
-/* ===== PLAYER ===== */
+if(player.x>s.x-scrollX-20){
+showQuiz();
+}
+
+/* player */
 ctx.save();
 if(player.dir==-1){
 ctx.scale(-1,1);
@@ -292,15 +324,12 @@ ctx.restore();
 requestAnimationFrame(loop);
 }
 
-/* ===== START ===== */
+/* start */
 function start(){
-menu.style.display="none";
 playerImg.src="play"+selected+".png";
-
-loadMap();
-createPlatforms();
-
+menu.style.display="none";
 music.play().catch(()=>{});
+loadMap();
 loop();
 }
 </script>
