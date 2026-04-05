@@ -8,17 +8,18 @@
 <style>
 html,body{
 margin:0;
-background:black;
 overflow:hidden;
+background:black;
 touch-action:none;
 }
 
+/* canvas */
 canvas{
 position:absolute;
 image-rendering:pixelated;
 }
 
-/* xoay ngang */
+/* bắt xoay ngang */
 #rotate{
 position:fixed;
 width:100%;
@@ -29,6 +30,26 @@ display:flex;
 justify-content:center;
 align-items:center;
 z-index:100;
+}
+
+/* menu */
+#menu{
+position:fixed;
+width:100%;
+height:100%;
+z-index:200;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+background:url('manhinhchinh.png') center/cover;
+}
+
+/* chọn nhân vật */
+.char{
+width:100px;
+margin:10px;
+border:3px solid white;
 }
 
 /* control */
@@ -49,20 +70,6 @@ background:rgba(255,255,255,0.3);
 border-radius:50%;
 }
 
-/* menu */
-#menu{
-position:fixed;
-width:100%;
-height:100%;
-background:black;
-color:white;
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-z-index:200;
-}
-
 /* quiz */
 #quiz{
 position:fixed;
@@ -81,11 +88,14 @@ z-index:300;
 
 <div id="rotate">Xoay ngang để chơi</div>
 
+<!-- MENU -->
 <div id="menu">
-<h2>Game Lịch Sử</h2>
-<input id="name" placeholder="Tên người chơi"><br><br>
-<button onclick="choose(1)">Nhân vật 1</button>
-<button onclick="choose(2)">Nhân vật 2</button><br><br>
+<h2 style="color:white">Chọn nhân vật</h2>
+
+<img src="play1.png" class="char" onclick="choose(1)">
+<img src="play2.png" class="char" onclick="choose(2)">
+
+<br>
 <button onclick="start()">Bắt đầu</button>
 </div>
 
@@ -104,10 +114,10 @@ z-index:300;
 <audio id="music" src="amthanh.mp3" loop></audio>
 
 <script>
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-/* ===== 16:9 ===== */
+/* ===== FIX 16:9 ===== */
 function resize(){
 let ratio=16/9;
 let w=innerWidth,h=innerHeight;
@@ -126,24 +136,24 @@ canvas.style.top=(h-canvas.height)/2+"px";
 resize();
 addEventListener("resize",resize);
 
-/* ===== xoay ===== */
+/* xoay ngang */
 function checkRotate(){
 rotate.style.display=(innerHeight>innerWidth)?"flex":"none";
 }
 checkRotate();
 addEventListener("resize",checkRotate);
 
-/* ===== chọn nhân vật ===== */
+/* ===== CHỌN NHÂN VẬT ===== */
 let playerImg=new Image();
-let totalFrame=6;
+let totalFrame=4;
 let frame=0;
 let frameSpeed=0.25;
 
 function choose(n){
-playerImg.src = (n==1) ? "play1.png" : "play2.png";
+playerImg.src = (n==1)?"play1.png":"play2.png";
 }
 
-/* ===== player ===== */
+/* ===== PLAYER ===== */
 let player={
 x:100,y:0,
 vx:0,vy:0,
@@ -156,7 +166,7 @@ function ground(){
 return canvas.height-70;
 }
 
-/* ===== control ===== */
+/* ===== CONTROL ===== */
 let c={left:false,right:false,jump:false};
 
 function bind(id,key){
@@ -166,80 +176,65 @@ b.ontouchend=()=>c[key]=false;
 b.onmousedown=()=>c[key]=true;
 b.onmouseup=()=>c[key]=false;
 }
-
 bind("left","left");
 bind("right","right");
 bind("jump","jump");
 
-/* ===== map ===== */
-const maps=[
-"thanhhoa.png","thanglong.png","batho.png",
-"quoctugiam.png","thuathienhue.jpg",
-"dienkinhthien.png","hoankiem.jpg",
-"hoian.jpg","quangnam.jpg","dentho.png"
-];
+/* ===== ÂM THANH ===== */
+let jumpSound=new Audio("nhay.mp3");
 
-const questions=[
-{q:"Lê Lợi khởi nghĩa ở đâu?",a:["Thanh Hóa","Huế","HN","ĐN"],c:0},
-{q:"Kinh đô xưa?",a:["Huế","Thăng Long","SG","HN"],c:1}
-];
-
+/* ===== MAP ===== */
 let mapImg=new Image();
-let current;
+mapImg.src="thanglong.png";
 
-/* load map */
-function loadMap(){
-let i=Math.floor(Math.random()*maps.length);
-mapImg.src=maps[i];
-current=questions[i%questions.length];
+/* ===== TRỤC ===== */
+let scrollImg=new Image();
+scrollImg.src="truc.png";
 
-player.x=100;
-player.y=0;
-scrollX=0;
-}
-
-/* ===== quiz ===== */
+/* ===== QUIZ ===== */
+let question="Đây là Thăng Long?";
 function showQuiz(){
 quiz.style.display="block";
-quiz.innerHTML="<h3>"+current.q+"</h3>";
-current.a.forEach((ans,i)=>{
-quiz.innerHTML+=`<button onclick="answer(${i})">${ans}</button>`;
-});
+quiz.innerHTML=`
+<p>${question}</p>
+<button onclick="answer(true)">Đúng</button>
+<button onclick="answer(false)">Sai</button>
+`;
 }
 
-function answer(i){
+function answer(ok){
 quiz.style.display="none";
 
-if(i==current.c){
-score++;
+if(ok){
 new Audio("dung.mp3").play();
-loadMap();
+score++;
 }else{
 new Audio("sai.mp3").play();
 reset();
 }
 }
 
-/* ===== score ===== */
+/* ===== SCORE ===== */
 let score=0;
 
-/* ===== reset ===== */
+/* ===== RESET ===== */
 function reset(){
 player.x=100;
 player.y=0;
 scrollX=0;
 }
 
-/* ===== platform ===== */
+/* ===== PLATFORM ===== */
 let platforms=[
 {x:400,y:300,w:120,h:20},
 {x:700,y:250,w:120,h:20}
 ];
 
-/* ===== game ===== */
+/* ===== GAME ===== */
 let gravity=0.8;
 let scrollX=0;
 
+/* DRAW PLAYER */
 function drawPlayer(){
 
 let fw = playerImg.width / totalFrame;
@@ -251,19 +246,22 @@ if(frame>=totalFrame) frame=0;
 frame=0;
 }
 
+let fx=Math.floor(frame)*fw;
+
 ctx.save();
 ctx.translate(player.x,player.y);
 
 if(player.dir==-1){
 ctx.scale(-1,1);
-ctx.drawImage(playerImg,Math.floor(frame)*fw,0,fw,playerImg.height,-player.w,0,player.w,player.h);
+ctx.drawImage(playerImg,fx,0,fw,playerImg.height,-player.w,0,player.w,player.h);
 }else{
-ctx.drawImage(playerImg,Math.floor(frame)*fw,0,fw,playerImg.height,0,0,player.w,player.h);
+ctx.drawImage(playerImg,fx,0,fw,playerImg.height,0,0,player.w,player.h);
 }
 
 ctx.restore();
 }
 
+/* LOOP */
 function loop(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -285,6 +283,7 @@ if(c.right){player.vx=5;player.dir=1;}
 if(c.jump && player.onGround){
 player.vy=-15;
 player.onGround=false;
+jumpSound.play();
 }
 
 player.vy+=gravity;
@@ -318,16 +317,15 @@ player.onGround=true;
 /* camera */
 scrollX+=player.vx;
 
-/* draw platform */
+/* platform draw */
 ctx.fillStyle="green";
 platforms.forEach(p=>{
 ctx.fillRect(p.x-scrollX,p.y,p.w,p.h);
 });
 
-/* scroll */
+/* trục */
 let s=900;
-ctx.fillStyle="yellow";
-ctx.fillRect(s-scrollX,ground()-40,40,40);
+ctx.drawImage(scrollImg,s-scrollX,ground()-40,40,40);
 
 if(player.x > s-scrollX-20){
 showQuiz();
@@ -343,10 +341,10 @@ ctx.fillText("Điểm: "+score,20,20);
 requestAnimationFrame(loop);
 }
 
+/* START */
 function start(){
 menu.style.display="none";
 music.play().catch(()=>{});
-loadMap();
 loop();
 }
 </script>
